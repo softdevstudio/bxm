@@ -123,8 +123,23 @@ bxm_canon_hash(out, n, hex, NULL);
 bxm_canon_free(out, n);
 ```
 
-JavaScript (WebAssembly) and Python packages built on the same core are next
-on the list.
+JavaScript, in Node 18+ and browsers, with the same core compiled to
+WebAssembly:
+
+```sh
+npm install https://github.com/softdevstudio/bxm/releases/latest/download/bxm-canon-js.tgz
+```
+
+```js
+import { load } from "bxm-canon";
+const canon = await load();
+canon.hashText('{"b":1,"a":2}') === canon.hashText('{ "a": 2, "b": 1 }'); // true
+```
+
+Every release carries the package as `bxm-canon-js.tgz`, so the link above
+always gives the latest. See [js/package/README.md](js/package/README.md).
+
+A Python package built on the same core is next.
 
 ### Conformance
 
