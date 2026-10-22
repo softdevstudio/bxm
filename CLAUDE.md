@@ -40,7 +40,12 @@ and config values only; never touch the theme).
 
 1. Done in 0.2.0: Canon JavaScript package (npm publish waits for an NPM_TOKEN secret).
 2. Done in 0.3.0: Canon Python package (python/; PyPI upload waits for a PYPI_TOKEN secret).
-3. Memo remote cache (S3/R2 compatible) so CI and laptops share results.
+3. Dropped Oct 22 2026 (owner's call): Memo remote cache on S3/R2. Sharing
+   already works through CI caches (actions/cache on BXM_MEMO_CACHE) and
+   shared folders (--cache on a network drive). If cross-machine sharing is
+   ever wanted, the preferred design is a plain-HTTP `bxm-memo serve`, not S3.
+
+The approved plan is complete. Further work only on the owner's request.
 
 Decided against: switching Memo's manifests to Canon. It would need cgo or a
 second Canon implementation in Go, and either one breaks a promise (Memo as
