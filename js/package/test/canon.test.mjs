@@ -85,3 +85,20 @@ test("large values and many calls do not leak or break", () => {
   for (let i = 0; i < 5000; i++) canon.hashText(`{"i":${i}}`);
   assert.equal(canon.hash(bytes), canon.hashText(big));
 });
+
+test("unpaired surrogates in JS strings are refused", () => {
+  assert.throws(() => canon.hashText('"\uD800"'), (e) => e instanceof CanonError && e.code === "text");
+  assert.throws(() => canon.fromText('"\uDC00x"'), CanonError);
+  assert.equal(canon.toText(canon.fromText('"\uD83D\uDE00"')), '"😀"');
+});
+
+test("nesting to the limit works in WebAssembly and one more level is an error", () => {
+  const deep = (n) => "[".repeat(n) + "]".repeat(n);
+  const ok = canon.fromText(deep(512));
+  assert.equal(canon.toText(ok), deep(512));
+  assert.equal(canon.fmt(deep(512)), deep(512));
+  assert.deepEqual(canon.diffText(deep(512), deep(512)), []);
+  assert.throws(() => canon.fromText(deep(513)), CanonError);
+  const tooDeep = new Uint8Array([...Array(513).fill([7, 1]).flat(), 0]);
+  assert.throws(() => canon.toText(tooDeep), (e) => e.code === "too-deep");
+});

@@ -11,6 +11,8 @@ browsers, and has no dependencies.
 
 ```sh
 npm install bxm-canon
+# or straight from the latest GitHub release:
+npm install https://github.com/softdevstudio/bxm/releases/latest/download/bxm-canon-js.tgz
 ```
 
 ```js
@@ -59,9 +61,27 @@ Canon text is JSON with three rules: a number without `.` or `e` is a 64-bit
 integer, a repeated key is an error, and bytes are written `h"00ff"`.
 
 To hash a JavaScript object, pass `JSON.stringify(obj)` to `hashText`. Keep
-in mind that JavaScript writes `1.0` as `1`, so whole numbers become Canon
-integers. If a value must be a float, write it with a decimal point in the
-text.
+in mind how JavaScript writes numbers. `1.0` comes out as `1`, so whole
+numbers become Canon integers. Whole numbers from 2^63 up to 1e21 come out as
+long digit strings, which don't fit in 64 bits and are refused. From 1e21 up
+they're written with `e`, so they become floats. And integers beyond 2^53
+have already lost precision in JavaScript before Canon sees them. If a value
+must be a float, or must be exact, write the text yourself.
+
+Strings must be valid Unicode: a lone surrogate (half of an emoji, say) is
+refused rather than quietly replaced.
+
+## Errors
+
+`instanceof CanonError` works within one module system. If an app mixes
+`import` and `require`, the two copies have separate classes, so check
+`e.name === "CanonError"` instead.
+
+## Browsers
+
+The package works in any browser with WebAssembly. A page with a Content
+Security Policy needs `'wasm-unsafe-eval'` in `script-src`. CI tests it in
+Node; browser use is not tested in CI yet.
 
 ## More
 

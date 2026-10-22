@@ -13,14 +13,14 @@ dependencies = [
 
 [[package]]
 name = "bxm-canon"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "sha2",
 ]
 
 [[package]]
 name = "bxm-canon-wasm"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bxm-canon",
 ]

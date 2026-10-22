@@ -35,9 +35,18 @@ let loading = null;
 
 /** Loads the WebAssembly module once and returns the Canon API. */
 function load() {
-  if (!loading) loading = instantiate();
+  if (!loading) {
+    loading = instantiate();
+    loading.catch(() => {
+      loading = null;
+    });
+  }
   return loading;
 }
+
+// A lone surrogate can't be written as UTF-8. TextEncoder would quietly turn
+// it into U+FFFD, so two different strings would give one hash. Refuse it.
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/;
 
 async function instantiate() {
   const { instance } = await WebAssembly.instantiate(decodeBase64(WASM_BASE64), {});
@@ -53,6 +62,9 @@ async function instantiate() {
   };
   const toText = (input) => {
     if (typeof input !== "string") throw new TypeError("text must be a string");
+    if (LONE_SURROGATE.test(input)) {
+      throw new CanonError("text at byte 0: the string has an unpaired surrogate, which is not valid Unicode");
+    }
     return enc.encode(input);
   };
 
@@ -65,18 +77,26 @@ async function instantiate() {
 
   // Calls one operation with byte inputs, frees them, and returns the result
   // bytes or throws a CanonError with the message the core produced.
+  let broken = false;
   const call = (fn, inputs, extra = []) => {
+    if (broken) throw new Error("bxm-canon: this instance hit a WebAssembly trap; call load() again");
     const ptrs = inputs.map(put);
     const args = [];
     inputs.forEach((b, i) => args.push(ptrs[i], b.length));
+    let rc, out;
     try {
-      const rc = w[fn](...args, ...extra);
-      const out = result();
-      if (rc !== 0) throw new CanonError(dec.decode(out));
-      return out;
-    } finally {
+      rc = w[fn](...args, ...extra);
+      out = result();
       inputs.forEach((b, i) => w.bxm_dealloc(ptrs[i], b.length));
+    } catch (e) {
+      // A trap (for example out of memory) can leave the module in a bad
+      // state. Drop it so the next load() starts a fresh instance.
+      broken = true;
+      loading = null;
+      throw e;
     }
+    if (rc !== 0) throw new CanonError(dec.decode(out));
+    return out;
   };
   const str = (u8) => dec.decode(u8);
 

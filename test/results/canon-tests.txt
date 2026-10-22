@@ -1,84 +1,50 @@
-warning: output filename collision at /home/claude/bxm/canon/target/release/deps/libbxm_canon.rlib
-  |
-  = note: the lib target `bxm_canon` in package `bxm-canon v0.1.0 (/home/claude/bxm/canon)` has the same output filename as the lib target `bxm_canon` in package `bxm-canon v0.1.0 (/home/claude/bxm/canon)`
-  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
-  = help: consider changing their names to be unique or compiling them separately
-warning: output filename collision at /home/claude/bxm/canon/target/release/deps/libbxm_canon.a
-  |
-  = note: the lib target `bxm_canon` in package `bxm-canon v0.1.0 (/home/claude/bxm/canon)` has the same output filename as the lib target `bxm_canon` in package `bxm-canon v0.1.0 (/home/claude/bxm/canon)`
-  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
-  = help: consider changing their names to be unique or compiling them separately
-warning: output filename collision at /home/claude/bxm/canon/target/release/deps/libbxm_canon.so
-  |
-  = note: the lib target `bxm_canon` in package `bxm-canon v0.1.0 (/home/claude/bxm/canon)` has the same output filename as the lib target `bxm_canon` in package `bxm-canon v0.1.0 (/home/claude/bxm/canon)`
-  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
-  = help: consider changing their names to be unique or compiling them separately
-warning: output filename collision at /home/claude/bxm/canon/target/release/deps/libbxm_canon.so.dwp
-  |
-  = note: the lib target `bxm_canon` in package `bxm-canon v0.1.0 (/home/claude/bxm/canon)` has the same output filename as the lib target `bxm_canon` in package `bxm-canon v0.1.0 (/home/claude/bxm/canon)`
-  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
-  = help: consider changing their names to be unique or compiling them separately
-   Compiling bxm-canon v0.1.0 (/home/claude/bxm/canon)
-error: linking with `cc` failed: exit status: 1
-  |
-  = note:  "cc" "-m64" "<1 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib/libcompiler_builtins-*.rlib" "-Wl,-Bdynamic" "-lgcc_s" "-lutil" "-lrt" "-lpthread" "-lm" "-ldl" "-lc" "-L" "/home/claude/bxm/canon/target/release/deps/rustcg7aaH1/raw-dylibs" "-B<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld" "-fuse-ld=lld" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-L" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib" "-o" "/home/claude/bxm/canon/target/release/deps/bxm_canon-5f8f3f8e979f2120" "-Wl,--gc-sections" "-pie" "-Wl,-z,relro,-z,now" "-Wl,-O1" "-Wl,--strip-all" "-nodefaultlibs"
-  = note: some arguments are omitted. use `--verbose` to show all linker arguments
-  = note: rust-lld: error: undefined symbol: <bxm_canon::Error as core::fmt::Display>::fmt
-          >>> referenced by bxm_canon.a57a491edbb33606-cgu.0
-          >>>               /home/claude/bxm/canon/target/release/deps/bxm_canon-5f8f3f8e979f2120.bxm_canon.a57a491edbb33606-cgu.0.rcgu.o:(bxm_canon::run::{closure#3})
-          >>> referenced by bxm_canon.a57a491edbb33606-cgu.0
-          >>>               /home/claude/bxm/canon/target/release/deps/bxm_canon-5f8f3f8e979f2120.bxm_canon.a57a491edbb33606-cgu.0.rcgu.o:(bxm_canon::value_from)
-          >>> referenced by bxm_canon.a57a491edbb33606-cgu.0
-          >>>               /home/claude/bxm/canon/target/release/deps/bxm_canon-5f8f3f8e979f2120.bxm_canon.a57a491edbb33606-cgu.0.rcgu.o:(bxm_canon::main)
-          >>> referenced 1 more times
-          
-          rust-lld: error: undefined symbol: bxm_canon::decode
-          >>> referenced by bxm_canon.a57a491edbb33606-cgu.0
-          >>>               /home/claude/bxm/canon/target/release/deps/bxm_canon-5f8f3f8e979f2120.bxm_canon.a57a491edbb33606-cgu.0.rcgu.o:(bxm_canon::value_from)
-          
-          rust-lld: error: undefined symbol: bxm_canon::text::parse
-          >>> referenced by bxm_canon.a57a491edbb33606-cgu.0
-          >>>               /home/claude/bxm/canon/target/release/deps/bxm_canon-5f8f3f8e979f2120.bxm_canon.a57a491edbb33606-cgu.0.rcgu.o:(bxm_canon::value_from)
-          
-          rust-lld: error: undefined symbol: <bxm_canon::text::ParseError as core::fmt::Display>::fmt
-          >>> referenced by bxm_canon.a57a491edbb33606-cgu.0
-          >>>               /home/claude/bxm/canon/target/release/deps/bxm_canon-5f8f3f8e979f2120.bxm_canon.a57a491edbb33606-cgu.0.rcgu.o:(bxm_canon::value_from)
-          
-          rust-lld: error: undefined symbol: bxm_canon::check
-          >>> referenced by bxm_canon.a57a491edbb33606-cgu.0
-          >>>               /home/claude/bxm/canon/target/release/deps/bxm_canon-5f8f3f8e979f2120.bxm_canon.a57a491edbb33606-cgu.0.rcgu.o:(bxm_canon::main)
-          >>> referenced by bxm_canon.a57a491edbb33606-cgu.0
-          >>>               /home/claude/bxm/canon/target/release/deps/bxm_canon-5f8f3f8e979f2120.bxm_canon.a57a491edbb33606-cgu.0.rcgu.o:(bxm_canon::main)
-          
-          rust-lld: error: undefined symbol: bxm_canon::encode
-          >>> referenced by bxm_canon.a57a491edbb33606-cgu.0
-          >>>               /home/claude/bxm/canon/target/release/deps/bxm_canon-5f8f3f8e979f2120.bxm_canon.a57a491edbb33606-cgu.0.rcgu.o:(bxm_canon::main)
-          >>> referenced by bxm_canon.a57a491edbb33606-cgu.0
-          >>>               /home/claude/bxm/canon/target/release/deps/bxm_canon-5f8f3f8e979f2120.bxm_canon.a57a491edbb33606-cgu.0.rcgu.o:(bxm_canon::main)
-          
-          rust-lld: error: undefined symbol: bxm_canon::hash_bytes
-          >>> referenced by bxm_canon.a57a491edbb33606-cgu.0
-          >>>               /home/claude/bxm/canon/target/release/deps/bxm_canon-5f8f3f8e979f2120.bxm_canon.a57a491edbb33606-cgu.0.rcgu.o:(bxm_canon::main)
-          >>> referenced by bxm_canon.a57a491edbb33606-cgu.0
-          >>>               /home/claude/bxm/canon/target/release/deps/bxm_canon-5f8f3f8e979f2120.bxm_canon.a57a491edbb33606-cgu.0.rcgu.o:(bxm_canon::main)
-          
-          rust-lld: error: undefined symbol: bxm_canon::diff::diff
-          >>> referenced by bxm_canon.a57a491edbb33606-cgu.0
-          >>>               /home/claude/bxm/canon/target/release/deps/bxm_canon-5f8f3f8e979f2120.bxm_canon.a57a491edbb33606-cgu.0.rcgu.o:(bxm_canon::main)
-          
-          rust-lld: error: undefined symbol: <bxm_canon::diff::Change>::line
-          >>> referenced by bxm_canon.a57a491edbb33606-cgu.0
-          >>>               /home/claude/bxm/canon/target/release/deps/bxm_canon-5f8f3f8e979f2120.bxm_canon.a57a491edbb33606-cgu.0.rcgu.o:(bxm_canon::main)
-          
-          rust-lld: error: undefined symbol: bxm_canon::text::to_string_pretty
-          >>> referenced by bxm_canon.a57a491edbb33606-cgu.0
-          >>>               /home/claude/bxm/canon/target/release/deps/bxm_canon-5f8f3f8e979f2120.bxm_canon.a57a491edbb33606-cgu.0.rcgu.o:(bxm_canon::render)
-          
-          rust-lld: error: undefined symbol: bxm_canon::text::to_string
-          >>> referenced by bxm_canon.a57a491edbb33606-cgu.0
-          >>>               /home/claude/bxm/canon/target/release/deps/bxm_canon-5f8f3f8e979f2120.bxm_canon.a57a491edbb33606-cgu.0.rcgu.o:(bxm_canon::render)
-          collect2: error: ld returned 1 exit status
-          
+   Compiling bxm-canon v0.2.0 (/home/claude/bxm/canon)
+    Finished `release` profile [optimized] target(s) in 22.54s
+     Running unittests src/lib.rs (target/release/deps/bxm_canon-452252182738c053)
 
-error: could not compile `bxm-canon` (bin "bxm-canon") due to 1 previous error
-warning: build failed, waiting for other jobs to finish...
+running 12 tests
+test diff::tests::lists_paths ... ok
+test ffi::tests::c_api_round_trip ... ok
+test tests::huge_declared_lengths_do_not_allocate ... ok
+test tests::map_order_is_byte_order ... ok
+test tests::depth_limit ... ok
+test tests::rejects_bad_floats_both_ways ... ok
+test tests::varint_round_trip_and_zigzag ... ok
+test text::tests::bytes_and_round_trip ... ok
+test text::tests::duplicate_keys_are_errors ... ok
+test text::tests::ints_and_floats_stay_apart ... ok
+test text::tests::rejects_negative_zero_and_huge ... ok
+test text::tests::surrogates ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/release/deps/bxm_canon-34d495616684afe3)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/properties.rs (target/release/deps/properties-da98a2926a69f5cc)
+
+running 3 tests
+test key_order_in_text_does_not_change_the_bytes ... ok
+test accepted_bytes_are_the_only_encoding ... ok
+test values_round_trip_through_bytes_and_text ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.59s
+
+     Running tests/vectors.rs (target/release/deps/vectors-28ff162a6055ebfc)
+
+running 2 tests
+test valid_vectors ... ok
+test invalid_vectors ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests bxm_canon
+
+running 1 test
+test src/lib.rs - (line 7) ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.79s
+

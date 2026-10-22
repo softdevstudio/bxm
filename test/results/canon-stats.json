@@ -4,7 +4,7 @@
   "accepted_but_not_canonical": 0,
   "doc_bytes": 1142829,
   "doc_text_bytes": 1902960,
-  "encode_mb_per_s": 1375,
-  "decode_mb_per_s": 144,
-  "check_mb_per_s": 651
+  "encode_mb_per_s": 1035,
+  "decode_mb_per_s": 99,
+  "check_mb_per_s": 551
 }

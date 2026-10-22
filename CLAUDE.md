@@ -27,12 +27,12 @@ and config values only; never touch the theme).
 
 ## State
 
-0.1.0: both tools built, tested, recorded. Canon has the Rust library, CLI
-and C API.
+0.2.0: Canon adds the JavaScript package (js/), built from the core as WebAssembly.
+0.1.0: both tools built, tested, recorded; Canon has the Rust library, CLI and C API.
 
 ## Next (approved Oct 22 2026; the owner left these calls to Claude)
 
-1. Canon JavaScript package: compile the core to WebAssembly, publish to npm.
+1. Done in 0.2.0: Canon JavaScript package (npm publish waits for an NPM_TOKEN secret).
 2. Canon Python package: PyO3 wheels, publish to PyPI.
 3. Memo remote cache (S3/R2 compatible) so CI and laptops share results.
 
