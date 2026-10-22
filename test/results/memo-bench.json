@@ -3,9 +3,9 @@
   "input_kib_each": 1,
   "outputs": 200,
   "output_kib_total": 10412,
-  "miss_ms": 2589,
-  "hit_ms": 71,
-  "explain_hit_ms": 35,
-  "explain_after_edit_ms": 36,
+  "miss_ms": 2610,
+  "hit_ms": 79,
+  "explain_hit_ms": 47,
+  "explain_after_edit_ms": 46,
   "explain_after_edit_says": "input src/f0500.txt changed"
 }

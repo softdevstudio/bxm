@@ -1,17 +1,17 @@
 === RUN   TestExitCodesPassThrough
 --- PASS: TestExitCodesPassThrough (0.01s)
 === RUN   TestManyProcessesShareOneCache
---- PASS: TestManyProcessesShareOneCache (0.36s)
+--- PASS: TestManyProcessesShareOneCache (0.37s)
 === RUN   TestKilledRunLeavesNoEntry
 --- PASS: TestKilledRunLeavesNoEntry (0.51s)
 === RUN   TestExplainSaysWhy
---- PASS: TestExplainSaysWhy (0.02s)
+--- PASS: TestExplainSaysWhy (0.01s)
 === RUN   TestGCAndClear
---- PASS: TestGCAndClear (0.03s)
+--- PASS: TestGCAndClear (0.01s)
 PASS
-ok  	github.com/softdevstudio/bxm/memo/cmd/bxm-memo	2.249s
+ok  	github.com/softdevstudio/bxm/memo/cmd/bxm-memo	2.230s
 === RUN   TestHitRestoresOutputsAndReplaysOutput
---- PASS: TestHitRestoresOutputsAndReplaysOutput (0.01s)
+--- PASS: TestHitRestoresOutputsAndReplaysOutput (0.02s)
 === RUN   TestMissReasons
 --- PASS: TestMissReasons (0.02s)
 === RUN   TestKeyDoesNotDependOnFlagOrder
@@ -35,10 +35,18 @@ ok  	github.com/softdevstudio/bxm/memo/cmd/bxm-memo	2.249s
 === RUN   TestGlobs
 --- PASS: TestGlobs (0.00s)
 === RUN   TestConcurrentRunsOfTheSameJob
---- PASS: TestConcurrentRunsOfTheSameJob (0.24s)
+--- PASS: TestConcurrentRunsOfTheSameJob (0.23s)
 === RUN   TestGCKeepsNewestWithinSize
 --- PASS: TestGCKeepsNewestWithinSize (0.06s)
 === RUN   TestLeftoversFromAKilledStoreAreIgnored
 --- PASS: TestLeftoversFromAKilledStoreAreIgnored (0.01s)
+=== RUN   TestOutputsMustStayInsideTheWorkingDirectory
+--- PASS: TestOutputsMustStayInsideTheWorkingDirectory (0.00s)
+=== RUN   TestInputsBehindDirectorySymlinksAreHashed
+--- PASS: TestInputsBehindDirectorySymlinksAreHashed (0.01s)
+=== RUN   TestPlantedEntriesAreRefused
+--- PASS: TestPlantedEntriesAreRefused (0.02s)
+=== RUN   TestEmptyDirectoryOutputIsRestored
+--- PASS: TestEmptyDirectoryOutputIsRestored (0.00s)
 PASS
-ok  	github.com/softdevstudio/bxm/memo/internal/memo	1.445s
+ok  	github.com/softdevstudio/bxm/memo/internal/memo	1.467s

@@ -2,7 +2,6 @@ package memo
 
 import (
 	"fmt"
-	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -85,31 +84,51 @@ func expandInput(arg string) ([]string, error) {
 	})
 }
 
+// walkFiles lists the regular files under root, following symlinks to files
+// and to directories. A directory reached twice through links is walked once,
+// so link loops end. A broken link is an error: silently skipping it could
+// hide an input and give a stale hit.
 func walkFiles(root string, keep func(rel string) bool) ([]string, error) {
 	var out []string
-	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+	seen := map[string]bool{}
+	var walk func(dir, rel string) error
+	walk = func(dir, rel string) error {
+		real, err := filepath.EvalSymlinks(dir)
 		if err != nil {
-			return err
+			return fmt.Errorf("input %s: %w", dir, err)
 		}
-		if d.IsDir() {
+		if seen[real] {
 			return nil
 		}
-		// Follow symlinks to files; skip anything that is not a regular file.
-		info, err := os.Stat(p)
+		seen[real] = true
+		entries, err := os.ReadDir(dir)
 		if err != nil {
-			return fmt.Errorf("input %s: %w", p, err)
+			return fmt.Errorf("input %s: %w", dir, err)
 		}
-		if !info.Mode().IsRegular() {
-			return nil
-		}
-		rel, _ := filepath.Rel(root, p)
-		rel = filepath.ToSlash(rel)
-		if keep == nil || keep(rel) {
-			out = append(out, filepath.ToSlash(p))
+		for _, e := range entries {
+			p := filepath.Join(dir, e.Name())
+			r := e.Name()
+			if rel != "" {
+				r = rel + "/" + e.Name()
+			}
+			info, err := os.Stat(p) // follows links
+			if err != nil {
+				return fmt.Errorf("input %s: %w (a broken link?)", filepath.ToSlash(p), err)
+			}
+			switch {
+			case info.IsDir():
+				if err := walk(p, r); err != nil {
+					return err
+				}
+			case info.Mode().IsRegular():
+				if keep == nil || keep(r) {
+					out = append(out, filepath.ToSlash(p))
+				}
+			}
 		}
 		return nil
-	})
-	if err != nil {
+	}
+	if err := walk(root, ""); err != nil {
 		return nil, err
 	}
 	sort.Strings(out)

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
@@ -113,6 +114,11 @@ func Build(s Spec) (*Manifest, error) {
 	outs := map[string]bool{}
 	for _, o := range s.Outputs {
 		o = cleanRel(o)
+		// Outputs are replaced on a hit, so they must stay inside the working
+		// directory and must not be the working directory itself.
+		if !filepath.IsLocal(filepath.FromSlash(o)) || o == "." {
+			return nil, fmt.Errorf("output %s must be a path inside the working directory (not ., .. or absolute)", o)
+		}
 		if outs[o] {
 			continue
 		}
@@ -125,8 +131,13 @@ func Build(s Spec) (*Manifest, error) {
 			return nil, fmt.Errorf("%s is declared as both an input and an output", o)
 		}
 		for _, in := range m.Inputs {
-			if strings.HasPrefix(in.Path, o+"/") {
+			if strings.HasPrefix(cleanRel(in.Path)+"/", o+"/") {
 				return nil, fmt.Errorf("input %s is inside output %s", in.Path, o)
+			}
+		}
+		for _, o2 := range m.Outputs {
+			if o2 != o && strings.HasPrefix(o2, o+"/") {
+				return nil, fmt.Errorf("output %s is inside output %s", o2, o)
 			}
 		}
 	}

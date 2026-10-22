@@ -116,6 +116,7 @@ uint8_t *out; size_t n; char *err = NULL;
 if (bxm_canon_from_text((const uint8_t *)text, len, &out, &n, &err) != BXM_OK) {
     fprintf(stderr, "%s\n", err);
     bxm_canon_free_str(err);
+    return 1;
 }
 char hex[65];
 bxm_canon_hash(out, n, hex, NULL);
@@ -197,6 +198,12 @@ bxm-memo clear                                  # delete the whole cache
 - If an input changes while the command runs, the result is not stored.
 - Results are keyed per OS and CPU type.
 - Many processes can share one cache at the same time.
+- Outputs must be paths inside the working directory: not `.`, not `..` and
+  not absolute, since a hit replaces them.
+- Symlinks inside input directories are followed. A broken link is an error,
+  so an input can't silently drop out of the key.
+- Patterns match dotfiles too, unlike a shell. A file name containing `*`,
+  `?` or `[` is read as a pattern.
 - On a hit, stdout is replayed, then stderr. Their original interleaving is
   not kept.
 - `gc` leaves files younger than an hour alone, since another run may be

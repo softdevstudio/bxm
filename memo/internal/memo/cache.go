@@ -92,6 +92,13 @@ func writeAtomic(path string, data []byte, perm fs.FileMode) error {
 	return nil
 }
 
+// touch marks a reused object as recent, so a concurrent gc does not remove
+// it before the new entry that refers to it is written.
+func touch(p string) {
+	now := time.Now()
+	os.Chtimes(p, now, now)
+}
+
 // putFile copies a file into the object store and returns its hash and size.
 func (c *Cache) putFile(src string) (string, int64, error) {
 	f, err := os.Open(src)
@@ -121,6 +128,7 @@ func (c *Cache) putFile(src string) (string, int64, error) {
 	dst := c.objPath(sum)
 	if _, err := os.Stat(dst); err == nil {
 		os.Remove(tmp)
+		touch(dst)
 		return sum, n, nil
 	}
 	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
@@ -138,6 +146,7 @@ func (c *Cache) putBytes(b []byte) (string, error) {
 	sum := sha256.Sum256(b)
 	h := hex.EncodeToString(sum[:])
 	if _, err := os.Stat(c.objPath(h)); err == nil {
+		touch(c.objPath(h))
 		return h, nil
 	}
 	return h, writeAtomic(c.objPath(h), b, 0o644)
@@ -166,10 +175,54 @@ func (c *Cache) Lookup(key string) (*Entry, error) {
 		return nil, err
 	}
 	var e Entry
-	if err := json.Unmarshal(b, &e); err != nil || e.Key != key || e.Manifest == nil {
+	if err := json.Unmarshal(b, &e); err != nil || e.Key != key || e.Manifest == nil || e.validate() != nil {
 		return nil, fmt.Errorf("entry %s is damaged", key[:12])
 	}
 	return &e, nil
+}
+
+func isHash(h string) bool {
+	if len(h) != 64 {
+		return false
+	}
+	for _, c := range h {
+		if !(c >= '0' && c <= '9' || c >= 'a' && c <= 'f') {
+			return false
+		}
+	}
+	return true
+}
+
+// validate checks that an entry can only write where its own manifest says,
+// so a damaged or planted entry in a shared cache cannot write anywhere else.
+func (e *Entry) validate() error {
+	bad := errors.New("invalid entry")
+	if e.Manifest.Key() != e.Key || len(e.Outputs) != len(e.Manifest.Outputs) {
+		return bad
+	}
+	for i, out := range e.Outputs {
+		o := e.Manifest.Outputs[i]
+		if out.Path != o || !filepath.IsLocal(filepath.FromSlash(o)) || o == "." {
+			return bad
+		}
+		if !out.IsDir && (len(out.Files) != 1 || out.Files[0].Path != o) {
+			return bad
+		}
+		for _, f := range out.Files {
+			if !isHash(f.Hash) {
+				return bad
+			}
+			if out.IsDir && (!filepath.IsLocal(filepath.FromSlash(f.Path)) || f.Path == ".") {
+				return bad
+			}
+		}
+	}
+	for _, h := range []string{e.Stdout, e.Stderr} {
+		if h != "" && !isHash(h) {
+			return bad
+		}
+	}
+	return nil
 }
 
 // LastManifest returns the manifest of the latest stored run of a job.
@@ -310,8 +363,25 @@ func (c *Cache) Restore(e *Entry) (int, int64, error) {
 			bytes += int64(len(data))
 		}
 	}
+	for _, out := range e.Outputs {
+		if out.IsDir {
+			if err := os.MkdirAll(filepath.FromSlash(out.Path), 0o755); err != nil {
+				cleanup()
+				return 0, 0, err
+			}
+		}
+	}
+	for i, s := range stage {
+		if err := os.Rename(s.tmp, s.dst); err != nil {
+			for _, rest := range stage[i:] {
+				os.Remove(rest.tmp)
+			}
+			return 0, 0, err
+		}
+	}
 	// Directory outputs are replaced as a whole: files that the cached run did
-	// not produce are removed, so the result matches a fresh run.
+	// not produce are removed, so the result matches a fresh run. This happens
+	// only after every file is in place.
 	keep := map[string]bool{}
 	for _, s := range stage {
 		keep[s.dst] = true
@@ -327,12 +397,6 @@ func (c *Cache) Restore(e *Entry) (int, int64, error) {
 			}
 			return nil
 		})
-	}
-	for _, s := range stage {
-		if err := os.Rename(s.tmp, s.dst); err != nil {
-			cleanup()
-			return 0, 0, err
-		}
 	}
 	return len(stage), bytes, nil
 }

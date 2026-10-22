@@ -372,3 +372,80 @@ func TestLeftoversFromAKilledStoreAreIgnored(t *testing.T) {
 		t.Fatalf("entries %d", len(es))
 	}
 }
+
+func TestOutputsMustStayInsideTheWorkingDirectory(t *testing.T) {
+	project(t, map[string]string{"in.txt": "i", "sub/x.txt": "x"})
+	for _, o := range []string{".", "./", "..", "../x", "/tmp/x", "sub/../.."} {
+		if _, err := Build(Spec{Command: []string{"true"}, Inputs: []string{"in.txt"}, Outputs: []string{o}}); err == nil {
+			t.Errorf("output %q was accepted", o)
+		}
+	}
+	if _, err := Build(Spec{Command: []string{"true"}, Inputs: []string{"sub"}, Outputs: []string{"sub"}}); err == nil {
+		t.Error("an output that contains an input was accepted")
+	}
+	if _, err := Build(Spec{Command: []string{"true"}, Inputs: []string{"in.txt"}, Outputs: []string{"out", "out/a"}}); err == nil {
+		t.Error("nested outputs were accepted")
+	}
+}
+
+func TestInputsBehindDirectorySymlinksAreHashed(t *testing.T) {
+	c := project(t, map[string]string{"real/a.txt": "1", "cp.sh": "#!/bin/sh\ncat src/linked/a.txt > out.txt\n"})
+	os.MkdirAll("src", 0o755)
+	if err := os.Symlink("../real", "src/linked"); err != nil {
+		t.Skip("no symlinks here")
+	}
+	os.Symlink("..", "src/loop") // a loop must not hang the walk
+	r := &runner{t: t, cache: c, spec: Spec{Command: []string{"./cp.sh"}, Inputs: []string{"src"}, Outputs: []string{"out.txt"}}}
+	r.run()
+	write(t, "real/a.txt", "2")
+	if res := r.run(); res.Hit {
+		t.Fatal("a change behind a directory symlink gave a stale hit")
+	}
+	if read(t, "out.txt") != "2" {
+		t.Fatal("wrong output")
+	}
+	os.Symlink("nowhere", "src/broken")
+	if _, err := Build(r.spec); err == nil || !strings.Contains(err.Error(), "broken link") {
+		t.Fatalf("a broken link should be an error, got %v", err)
+	}
+}
+
+func TestPlantedEntriesAreRefused(t *testing.T) {
+	c := project(t, map[string]string{"in.txt": "i", "mk.sh": "#!/bin/sh\nmkdir -p out; echo x > out/f\n"})
+	spec := Spec{Command: []string{"./mk.sh"}, Inputs: []string{"in.txt"}, Outputs: []string{"out"}}
+	r := &runner{t: t, cache: c, spec: spec}
+	r.run()
+	m, _ := Build(spec)
+	path := c.entryPath(m.Key())
+	orig, _ := os.ReadFile(path)
+	for name, edit := range map[string]func(string) string{
+		"escaping file": func(s string) string { return strings.Replace(s, `"path": "f"`, `"path": "../../escape.txt"`, 1) },
+		"other output":  func(s string) string { return strings.Replace(s, `"path": "out"`, `"path": "elsewhere"`, 1) },
+		"short hash": func(s string) string {
+			i := strings.Index(s, `"sha256": "`) + len(`"sha256": "`)
+			return s[:i] + "a" + s[i+64:]
+		},
+	} {
+		os.WriteFile(path, []byte(edit(string(orig))), 0o644)
+		res := r.run() // must not panic or write outside
+		if res.Hit {
+			t.Errorf("%s: planted entry was used", name)
+		}
+		if _, err := os.Stat("../escape.txt"); err == nil {
+			t.Fatalf("%s: wrote outside the working directory", name)
+		}
+	}
+}
+
+func TestEmptyDirectoryOutputIsRestored(t *testing.T) {
+	c := project(t, map[string]string{"in.txt": "i"})
+	r := &runner{t: t, cache: c, spec: Spec{Command: []string{"mkdir", "-p", "emptyd"}, Inputs: []string{"in.txt"}, Outputs: []string{"emptyd"}}}
+	r.run()
+	os.RemoveAll("emptyd")
+	if res := r.run(); !res.Hit {
+		t.Fatal("want hit")
+	}
+	if info, err := os.Stat("emptyd"); err != nil || !info.IsDir() {
+		t.Fatal("empty directory output not restored")
+	}
+}

@@ -18,9 +18,20 @@ on:
 permissions:
   contents: write
 
+# One release run at a time, so two quick pushes cannot race to publish.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   plan:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    # Only CI runs started by a push to this repository's main branch, never a
+    # pull request (a fork's branch can also be called main).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.v.outputs.version }}
@@ -32,10 +43,12 @@ jobs:
           ref: ${{ github.event.inputs.tag || github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 0
       - id: v
+        env:
+          REBUILD_TAG: ${{ github.event.inputs.tag }}
         run: |
           v=$(tr -d '[:space:]' < VERSION)
           sha=$(git rev-parse HEAD)
-          if [ -z "${{ github.event.inputs.tag }}" ] && git ls-remote --exit-code --tags origin "refs/tags/v$v" >/dev/null; then
+          if [ -z "$REBUILD_TAG" ] && git ls-remote --exit-code --tags origin "refs/tags/v$v" >/dev/null; then
             echo "v$v is already released; nothing to do"
             v=""
           fi

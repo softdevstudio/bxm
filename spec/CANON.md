@@ -79,9 +79,14 @@ A map with keys out of order, or with the same key twice, is an error.
 
 ## Limits
 
-Decoders must reject nesting deeper than 512 arrays and maps. A declared length
-or count larger than the bytes left in the input is an error, so a decoder
-never allocates for data that is not there.
+Decoders must reject nesting deeper than 512 arrays and maps.
+
+A declared length or count that cannot fit in the bytes left is an error,
+`length-too-large`, found before any item is read, so a decoder never
+allocates for data that is not there. The bounds are exact: a bytes or string
+length larger than the bytes left; an array count larger than the bytes left
+(every item takes at least one byte); a map count larger than half the bytes
+left (every entry takes at least two: a key length and a value tag).
 
 ## Text form
 

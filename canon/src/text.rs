@@ -263,10 +263,11 @@ impl<'a> Parser<'a> {
         if self.pos + 4 > self.s.len() {
             return Err(self.err("short \\u escape"));
         }
-        let h = std::str::from_utf8(&self.s[self.pos..self.pos + 4])
-            .ok()
-            .and_then(|t| u32::from_str_radix(t, 16).ok())
-            .ok_or_else(|| self.err("bad \\u escape"))?;
+        let digits = &self.s[self.pos..self.pos + 4];
+        if !digits.iter().all(|c| c.is_ascii_hexdigit()) {
+            return Err(self.err("bad \\u escape"));
+        }
+        let h = u32::from_str_radix(std::str::from_utf8(digits).unwrap(), 16).unwrap();
         self.pos += 4;
         Ok(h)
     }
@@ -477,5 +478,6 @@ mod tests {
         assert_eq!(parse(r#""😀""#).unwrap(), Value::String("😀".into()));
         assert!(parse(r#""\ud83d""#).is_err());
         assert!(parse(r#""\ude00""#).is_err());
+        assert!(parse(r#""\u+041""#).is_err());
     }
 }
