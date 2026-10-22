@@ -15,10 +15,10 @@ KNOWN = "e70e7c7b89c3a8b38fe00713290413936c9f976266c102b35aa91556dcc5233a"  # {"
 
 class Vectors(unittest.TestCase):
     def test_version_matches_repository(self):
-        self.assertEqual(canon.__version__, (ROOT / "VERSION").read_text().strip())
+        self.assertEqual(canon.__version__, (ROOT / "VERSION").read_text(encoding="utf-8").strip())
 
     def test_valid_vectors(self):
-        cases = json.loads((VECTORS / "valid.json").read_text())
+        cases = json.loads((VECTORS / "valid.json").read_text(encoding="utf-8"))
         self.assertGreaterEqual(len(cases), 30)
         for c in cases:
             with self.subTest(text=c["text"]):
@@ -29,7 +29,7 @@ class Vectors(unittest.TestCase):
                 self.assertEqual(canon.from_text(canon.to_text(b)), b)
 
     def test_invalid_vectors(self):
-        cases = json.loads((VECTORS / "invalid.json").read_text())
+        cases = json.loads((VECTORS / "invalid.json").read_text(encoding="utf-8"))
         self.assertGreaterEqual(len(cases), 30)
         for c in cases:
             with self.subTest(hex=c["hex"][:40]):
