@@ -9,7 +9,7 @@ rustup target add wasm32-unknown-unknown >/dev/null 2>&1 || true
 wasm=js/wasm/target/wasm32-unknown-unknown/release/bxm_canon_wasm.wasm
 node js/package/build.mjs "$wasm"
 cp LICENSE NOTICE js/package/
-(cd js/package && node --test test/)
+(cd js/package && node --test test/*.test.mjs test/*.test.cjs)
 if [ "${1:-}" = "--pack" ]; then
   mkdir -p dist
   (cd js/package && npm pack --silent --pack-destination ../../dist >/dev/null)
