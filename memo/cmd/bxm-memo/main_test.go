@@ -91,27 +91,39 @@ func TestExitCodesPassThrough(t *testing.T) {
 }
 
 func TestManyProcessesShareOneCache(t *testing.T) {
-	e := newEnv(t)
-	e.file("src/a.txt", "A", 0o644)
-	e.file("build.sh", "#!/bin/sh\necho run >> runs.log\nsleep 0.3\nmkdir -p out\ncat src/a.txt > out/r.txt\necho done\n", 0o755)
+	// Sixteen checkouts of the same job (as on sixteen CI runners or in
+	// sixteen worktrees) run at once against one shared cache. Each checkout
+	// has its own working directory, as it would in real use: processes that
+	// write the same output path in one directory race whether Memo is there
+	// or not.
 	const n = 16
+	cache := filepath.Join(t.TempDir(), "cache")
+	envs := make([]*env, n)
+	for i := range envs {
+		e := &env{t: t, dir: t.TempDir(), cache: cache}
+		e.file("src/a.txt", "A", 0o644)
+		e.file("build.sh", "#!/bin/sh\necho run >> runs.log\nsleep 0.3\nmkdir -p out\ncat src/a.txt > out/r.txt\necho done\n", 0o755)
+		envs[i] = e
+	}
 	var wg sync.WaitGroup
 	fails := make(chan string, n)
-	for i := 0; i < n; i++ {
+	for _, e := range envs {
 		wg.Add(1)
-		go func() {
+		go func(e *env) {
 			defer wg.Done()
 			out, errOut, code := e.run("run", "-q", "-i", "src", "-o", "out", "--", "./build.sh")
-			if code != 0 || out != "done\n" {
-				fails <- fmt.Sprintf("code %d out %q err %q", code, out, errOut)
+			b, _ := os.ReadFile(filepath.Join(e.dir, "out/r.txt"))
+			if code != 0 || out != "done\n" || string(b) != "A" {
+				fails <- fmt.Sprintf("code %d out %q file %q err %q", code, out, b, errOut)
 			}
-		}()
+		}(e)
 	}
 	wg.Wait()
 	close(fails)
 	for f := range fails {
 		t.Fatal(f)
 	}
+	e := envs[0]
 	os.RemoveAll(filepath.Join(e.dir, "out"))
 	_, errOut, _ := e.run("run", "-i", "src", "-o", "out", "--", "./build.sh")
 	if !strings.Contains(errOut, "hit") {

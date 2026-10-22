@@ -1,0 +1,74 @@
+plain  fresh  1 2c0eeb5  canon ran     memo ran       16.9 s  BXM 0.1.0: Canon (Rust) and Memo (Go)
+plain  fresh  2 8facb43  canon ran     memo ran       17.1 s  CLAUDE.md: settle the plan after 0.1.0
+plain  fresh  3 2db27d4  canon ran     memo FAILED    16.3 s  Fix review findings before 0.1.0
+plain  fresh  4 fc89559  canon ran     memo ran       16.8 s  canon: drop panic=abort from the release profile
+plain  fresh  5 d7a26da  canon ran     memo ran       17.4 s  js: Canon for JavaScript, built from the Rust co
+plain  fresh  6 3ae57dc  canon ran     memo ran       17.0 s  js: name test files explicitly (Node 22 reads --
+plain  fresh  7 a8de44d  canon ran     memo ran       17.2 s  Docs for the JavaScript package (0.2.0 notes, RE
+plain  fresh  8 6081f79  canon ran     memo FAILED    18.0 s  BXM 0.2.0: Canon for JavaScript
+plain  fresh  9 7c3d64a  canon ran     memo ran       16.8 s  python: Canon for Python through PyO3
+plain  fresh 10 a9d0ed2  canon ran     memo ran       18.0 s  build-python.sh: report failures as annotations
+plain  fresh 11 9744014  canon ran     memo ran       18.7 s  python tests: read vector files as UTF-8 (Window
+plain  fresh 12 c17a7bb  canon ran     memo ran       17.6 s  BXM 0.3.0: Canon for Python
+plain  fresh 13 a32af04  canon ran     memo ran       19.9 s  CLAUDE.md: drop the Memo remote cache; plan comp
+plain  fresh total 227.7 s over 13 commits
+memo   fresh  1 2c0eeb5  canon ran     memo ran       17.6 s  BXM 0.1.0: Canon (Rust) and Memo (Go)
+memo   fresh  2 8facb43  canon skipped memo skipped    0.0 s  CLAUDE.md: settle the plan after 0.1.0
+memo   fresh  3 2db27d4  canon ran     memo ran       16.8 s  Fix review findings before 0.1.0
+memo   fresh  4 fc89559  canon ran     memo skipped    5.0 s  canon: drop panic=abort from the release profile
+memo   fresh  5 d7a26da  canon ran     memo skipped    4.4 s  js: Canon for JavaScript, built from the Rust co
+memo   fresh  6 3ae57dc  canon skipped memo skipped    0.0 s  js: name test files explicitly (Node 22 reads --
+memo   fresh  7 a8de44d  canon skipped memo skipped    0.0 s  Docs for the JavaScript package (0.2.0 notes, RE
+memo   fresh  8 6081f79  canon ran     memo ran       17.3 s  BXM 0.2.0: Canon for JavaScript
+memo   fresh  9 7c3d64a  canon skipped memo skipped    0.0 s  python: Canon for Python through PyO3
+memo   fresh 10 a9d0ed2  canon skipped memo skipped    0.0 s  build-python.sh: report failures as annotations
+memo   fresh 11 9744014  canon skipped memo skipped    0.0 s  python tests: read vector files as UTF-8 (Window
+memo   fresh 12 c17a7bb  canon ran     memo ran       17.5 s  BXM 0.3.0: Canon for Python
+memo   fresh 13 a32af04  canon skipped memo skipped    0.0 s  CLAUDE.md: drop the Memo remote cache; plan comp
+memo   fresh total 78.6 s over 13 commits
+plain  warm   1 2c0eeb5  canon ran     memo ran       17.6 s  BXM 0.1.0: Canon (Rust) and Memo (Go)
+plain  warm   2 8facb43  canon ran     memo ran        2.2 s  CLAUDE.md: settle the plan after 0.1.0
+plain  warm   3 2db27d4  canon ran     memo ran        3.3 s  Fix review findings before 0.1.0
+plain  warm   4 fc89559  canon ran     memo ran        2.0 s  canon: drop panic=abort from the release profile
+plain  warm   5 d7a26da  canon ran     memo ran        3.1 s  js: Canon for JavaScript, built from the Rust co
+plain  warm   6 3ae57dc  canon ran     memo FAILED     2.3 s  js: name test files explicitly (Node 22 reads --
+plain  warm   7 a8de44d  canon ran     memo ran        2.2 s  Docs for the JavaScript package (0.2.0 notes, RE
+plain  warm   8 6081f79  canon ran     memo ran        4.7 s  BXM 0.2.0: Canon for JavaScript
+plain  warm   9 7c3d64a  canon ran     memo ran        2.1 s  python: Canon for Python through PyO3
+plain  warm  10 a9d0ed2  canon ran     memo ran        2.1 s  build-python.sh: report failures as annotations
+plain  warm  11 9744014  canon ran     memo ran        2.1 s  python tests: read vector files as UTF-8 (Window
+plain  warm  12 c17a7bb  canon ran     memo ran        5.0 s  BXM 0.3.0: Canon for Python
+plain  warm  13 a32af04  canon ran     memo ran        2.2 s  CLAUDE.md: drop the Memo remote cache; plan comp
+plain  warm  total 51.0 s over 13 commits
+memo   warm   1 2c0eeb5  canon ran     memo ran       17.6 s  BXM 0.1.0: Canon (Rust) and Memo (Go)
+memo   warm   2 8facb43  canon skipped memo skipped    0.0 s  CLAUDE.md: settle the plan after 0.1.0
+memo   warm   3 2db27d4  canon ran     memo ran        3.4 s  Fix review findings before 0.1.0
+memo   warm   4 fc89559  canon ran     memo skipped    0.6 s  canon: drop panic=abort from the release profile
+memo   warm   5 d7a26da  canon ran     memo skipped    1.6 s  js: Canon for JavaScript, built from the Rust co
+memo   warm   6 3ae57dc  canon skipped memo skipped    0.0 s  js: name test files explicitly (Node 22 reads --
+memo   warm   7 a8de44d  canon skipped memo skipped    0.0 s  Docs for the JavaScript package (0.2.0 notes, RE
+memo   warm   8 6081f79  canon ran     memo ran        5.2 s  BXM 0.2.0: Canon for JavaScript
+memo   warm   9 7c3d64a  canon skipped memo skipped    0.0 s  python: Canon for Python through PyO3
+memo   warm  10 a9d0ed2  canon skipped memo skipped    0.0 s  build-python.sh: report failures as annotations
+memo   warm  11 9744014  canon skipped memo skipped    0.0 s  python tests: read vector files as UTF-8 (Window
+memo   warm  12 c17a7bb  canon ran     memo ran        4.9 s  BXM 0.3.0: Canon for Python
+memo   warm  13 a32af04  canon skipped memo skipped    0.0 s  CLAUDE.md: drop the Memo remote cache; plan comp
+memo   warm  total 33.4 s over 13 commits
+test failures:
+  == memo tests failed at 2db27d49847a03afcdff5675a808d94b94fc0a79 (plain fresh)
+  --- FAIL: TestManyProcessesShareOneCache (0.36s)
+      main_test.go:122: restored ""
+  FAIL
+  FAIL	github.com/softdevstudio/bxm/memo/cmd/bxm-memo	1.297s
+  FAIL
+  == memo tests failed at 6081f79762245e853f068c243bfe04d1bb8c4811 (plain fresh)
+  --- FAIL: TestManyProcessesShareOneCache (0.38s)
+      main_test.go:122: restored ""
+  FAIL
+  FAIL	github.com/softdevstudio/bxm/memo/cmd/bxm-memo	1.327s
+  FAIL
+  == memo tests failed at 3ae57dc54d1f814b1aa878b40a6672df5e7c69f4 (plain warm)
+  --- FAIL: TestConcurrentRunsOfTheSameJob (0.24s)
+  FAIL
+  FAIL	github.com/softdevstudio/bxm/memo/internal/memo	0.603s
+  FAIL

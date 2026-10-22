@@ -1,0 +1,9 @@
+recorded 2026-10-22 08:52 UTC
+Linux 6.18.44-fc-v140 x86_64
+cpus: 2
+bxm-canon 0.3.0 (format 1)
+bxm-memo 0.3.0 (cache format 1)
+python: Python 3.13.16, bxm_canon 0.3.0
+node: v22.22.0
+cargo 1.97.0 (c980f4866 2026-06-30)
+go version go1.24.7 linux/amd64

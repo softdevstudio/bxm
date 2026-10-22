@@ -1,0 +1,66 @@
+{
+    "cache": {
+        "backend": "redis",
+        "max_items": 50000,
+        "ttl_s": 300,
+        "url": "redis://cache.internal:6379/2"
+    },
+    "database": {
+        "pool": {
+            "idle_ms": 600000,
+            "max": 32,
+            "min": 4,
+            "timeout_ms": 3000
+        },
+        "read_replicas": [
+            "db-r1.internal",
+            "db-r2.internal"
+        ],
+        "statement_timeout_ms": 15000,
+        "url": "postgres://checkout@db.internal:5432/checkout"
+    },
+    "deploy": {
+        "max_surge": 1,
+        "max_unavailable": 0,
+        "probe_path": "/healthz",
+        "replicas": 3.0
+    },
+    "description": "Checkout API f\u00fcr Zahlungen",
+    "features": {
+        "apple_pay": true,
+        "fraud_score_threshold": 0.82,
+        "invoice_pdf": true,
+        "new_tax_engine": false
+    },
+    "limits": {
+        "backoff_factor": 1.5,
+        "burst": 200,
+        "requests_per_minute": 1200,
+        "retries": 3
+    },
+    "logging": {
+        "format": "json",
+        "level": "info",
+        "redact": [
+            "card_number",
+            "cvv",
+            "iban"
+        ],
+        "sample_rate": 0.1
+    },
+    "owner": "payments-team",
+    "region": "eu-central",
+    "server": {
+        "host": "0.0.0.0",
+        "max_body_bytes": 1048576,
+        "port": 8443,
+        "read_timeout_ms": 5000,
+        "tls": {
+            "cert": "/etc/checkout/tls.crt",
+            "key": "/etc/checkout/tls.key",
+            "min_version": "1.2"
+        },
+        "write_timeout_ms": 10000
+    },
+    "service": "checkout"
+}

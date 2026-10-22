@@ -1,0 +1,66 @@
+{
+  "service": "checkout",
+  "owner": "payments-team",
+  "region": "eu-central",
+  "description": "Checkout API für Zahlungen",
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8443,
+    "read_timeout_ms": 5000,
+    "write_timeout_ms": 10000,
+    "max_body_bytes": 1048576,
+    "tls": {
+      "cert": "/etc/checkout/tls.crt",
+      "key": "/etc/checkout/tls.key",
+      "min_version": "1.2"
+    }
+  },
+  "database": {
+    "url": "postgres://checkout@db.internal:5432/checkout",
+    "pool": {
+      "min": 4,
+      "max": 32,
+      "timeout_ms": 30000,
+      "idle_ms": 600000
+    },
+    "statement_timeout_ms": 15000,
+    "read_replicas": [
+      "db-r1.internal",
+      "db-r2.internal"
+    ]
+  },
+  "cache": {
+    "backend": "redis",
+    "url": "redis://cache.internal:6379/2",
+    "ttl_s": 300,
+    "max_items": 50000
+  },
+  "limits": {
+    "requests_per_minute": 1200,
+    "burst": 200,
+    "retries": 3,
+    "backoff_factor": 1.5
+  },
+  "features": {
+    "new_tax_engine": false,
+    "apple_pay": true,
+    "invoice_pdf": true,
+    "fraud_score_threshold": 0.82
+  },
+  "logging": {
+    "level": "info",
+    "format": "json",
+    "sample_rate": 0.1,
+    "redact": [
+      "card_number",
+      "cvv",
+      "iban"
+    ]
+  },
+  "deploy": {
+    "replicas": 3,
+    "max_surge": 1,
+    "max_unavailable": 0,
+    "probe_path": "/healthz"
+  }
+}

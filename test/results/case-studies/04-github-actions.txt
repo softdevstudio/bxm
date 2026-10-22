@@ -1,0 +1,45 @@
+run 39750940596, 2026-10-22T08:51:46Z, commit cf0cfb9, success
+https://github.com/softdevstudio/bxm/actions/runs/39750940596
+== plain: success, job 22 s
+  plain: cargo build --release took 16.860701646 s
+== cold: success, job 19 s
+  cold cache: cache folder 448K
+  cold: bxm-memo: miss canon-release: no earlier run of this job in the cache; step took 13.454608618 s
+== warm: success, job 6 s
+  warm cache: cache folder 448K
+  warm: bxm-memo: hit canon-release: restored 1 file(s) in 670µs (the run took 12.722s); step took .169628123 s
+  warm restore: actions/cache restore took .323937123 s
+== docs: success, job 5 s
+  docs cache: cache folder 448K
+  docs: bxm-memo: hit canon-release: restored 1 file(s) in 798µs (the run took 12.722s); step took .157572560 s
+  docs restore: actions/cache restore took .351975310 s
+== source: success, job 15 s
+  source cache: cache folder 876K
+  source: bxm-memo: miss canon-release: the salt changed|bxm-memo:   input canon/src/main.rs changed; step took 8.639477123 s
+  source restore: actions/cache restore took 1.017526126 s
+
+run 39751211336, 2026-10-22T08:53:52Z, commit 7fbbc87, success
+https://github.com/softdevstudio/bxm/actions/runs/39751211336
+== plain: success, job 26 s
+  plain toolchain: rustc 1.99.1 (58cf8f9c3 2026-10-13); runner image ubuntu24 20261018.339.1
+  plain: cargo build --release took 22.965462425 s
+== cold: success, job 14 s
+  cold cache: cache folder 448K
+  cold toolchain: rustc 1.99.1 (58cf8f9c3 2026-10-13); runner image ubuntu24 20261018.339.1
+  cold: bxm-memo: miss canon-release: no earlier run of this job in the cache; step took 7.860929643 s
+== warm: success, job 17 s
+  warm cache: cache folder 876K
+  warm toolchain: rustc 1.99.0 (b940084d7 2026-09-28); runner image ubuntu24 20261012.334.1
+  warm: bxm-memo: miss canon-release: the salt changed; step took 10.861949500 s
+  warm restore: actions/cache restore took .550475457 s
+== docs: success, job 5 s
+  docs cache: cache folder 448K
+  docs toolchain: rustc 1.99.1 (58cf8f9c3 2026-10-13); runner image ubuntu24 20261018.339.1
+  docs: bxm-memo: hit canon-release: restored 1 file(s) in 1.017ms (the run took 7.703s); step took .174205524 s
+  docs restore: actions/cache restore took .340524337 s
+== source: success, job 24 s
+  source cache: cache folder 876K
+  source toolchain: rustc 1.99.0 (b940084d7 2026-09-28); runner image ubuntu24 20261012.334.1
+  source: bxm-memo: miss canon-release: the salt changed|bxm-memo:   input canon/src/main.rs changed; step took 18.590740807 s
+  source restore: actions/cache restore took .909286883 s
+

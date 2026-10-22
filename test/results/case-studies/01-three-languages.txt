@@ -1,0 +1,9 @@
+producer      plain JSON sha256 (first 16)   Canon sha256 (first 16)
+python        1f8d9b27ce3e67ea               c40aa605751c57bc
+javascript    812e853c92097b87               c40aa605751c57bc
+file + CLI    3af0d92f2d02ef5f               c40aa605751c57bc
+distinct plain JSON hashes: 3
+distinct Canon hashes: 1
+canon bytes: python 166, javascript 166; plain JSON bytes: python 226, javascript 193
+python's HMAC over plain JSON verified in javascript: False
+python's HMAC over Canon bytes verified in javascript: True

@@ -1,0 +1,27 @@
+== first run
+miss:
+  no earlier run of this job in the cache
+== nothing changed
+hit: a run with these exact inputs is cached
+== REPORT_CURRENCY set to CHF
+miss:
+  env REPORT_CURRENCY changed
+== python3 now points to Python 3.13.16
+miss:
+  the salt changed
+== one amount in data/2026-09.csv corrected
+miss:
+  input data/2026-09.csv changed
+== data/2026-11.csv added
+miss:
+  input data/2026-11.csv is new
+== data/2026-10.csv deleted
+miss:
+  input data/2026-10.csv is gone
+== every change undone: Python 3.12, EUR, the first two data files as they were
+hit: a run with these exact inputs is cached
+== final report
+built with Python 3.12.3
+east            45.25 EUR
+north          220.40 EUR
+south           80.00 EUR

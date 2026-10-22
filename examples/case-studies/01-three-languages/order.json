@@ -1,0 +1,10 @@
+{
+  "paid": true,
+  "lines": [
+    { "qty": 3, "sku": "BX-100", "price": 19.95 },
+    { "qty": 1, "sku": "BX-200", "price": 249.0 }
+  ],
+  "id": "ord-20261022-0042",
+  "currency": "CHF",
+  "customer": { "city": "Zürich", "name": "Anna Müller" }
+}

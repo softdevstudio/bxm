@@ -226,7 +226,9 @@ bxm-memo clear                                  # delete the whole cache
   half-restored outputs.
 - If an input changes while the command runs, the result is not stored.
 - Results are keyed per OS and CPU type.
-- Many processes can share one cache at the same time.
+- Many processes can share one cache at the same time. Give each one its own
+  working directory: two runs that write the same output files in one
+  directory race with each other, with or without Memo.
 - Outputs must be paths inside the working directory: not `.`, not `..` and
   not absolute, since a hit replaces them.
 - Symlinks inside input directories are followed. A broken link is an error,
@@ -256,7 +258,7 @@ files.
   bytes; random values round-tripped through bytes and text; a C program
   linked against the library.
 - Memo: hits, misses and their reasons; failing commands; missing outputs;
-  damaged cache objects; inputs edited mid-run; 16 processes sharing a cache;
+  damaged cache objects; inputs edited mid-run; 16 processes in 16 checkouts sharing a cache;
   a run killed with SIGKILL; garbage collection.
 
 CI runs both on Linux and macOS on every push.

@@ -1,0 +1,11 @@
+deployed.json: 66 lines; edited.json: 66 lines
+diff -u: 128 changed lines
+diff -u after sorting keys and re-indenting: 4 changed lines
+  -      "timeout_ms": 30000
+  +      "timeout_ms": 3000
+  -    "replicas": 3
+  +    "replicas": 3.0
+bxm-canon diff --text deployed.json edited.json:
+  ~ $.database.pool.timeout_ms 30000 -> 3000
+  ~ $.deploy.replicas 3 -> 3.0
+bxm-canon hash --text: 1fbf57098e0ac1b8 vs fdd5fa67f801d3df

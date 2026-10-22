@@ -296,9 +296,14 @@ func TestGlobs(t *testing.T) {
 }
 
 func TestConcurrentRunsOfTheSameJob(t *testing.T) {
+	// All eight runs share one working directory here, so the command writes
+	// its output atomically (temp file, then rename). With a plain "> r.txt"
+	// one run's truncation could be what another run stores: commands that
+	// write the same path at the same time race, with or without Memo. What
+	// this test checks is the cache: eight concurrent stores of one key.
 	c := project(t, map[string]string{"in.txt": "i",
-		"slow.sh": "#!/bin/sh\nsleep 0.2\nmkdir -p out\necho result > out/r.txt\n"})
-	spec := Spec{Command: []string{"./slow.sh"}, Inputs: []string{"in.txt"}, Outputs: []string{"out"}}
+		"slow.sh": "#!/bin/sh\nsleep 0.2\necho result > r.tmp.$$\nmv r.tmp.$$ r.txt\n"})
+	spec := Spec{Command: []string{"./slow.sh"}, Inputs: []string{"in.txt"}, Outputs: []string{"r.txt"}}
 	var wg sync.WaitGroup
 	errs := make(chan error, 8)
 	for i := 0; i < 8; i++ {
@@ -316,9 +321,9 @@ func TestConcurrentRunsOfTheSameJob(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	os.RemoveAll("out")
+	os.Remove("r.txt")
 	r := &runner{t: t, cache: c, spec: spec}
-	if res := r.run(); !res.Hit || read(t, "out/r.txt") != "result\n" {
+	if res := r.run(); !res.Hit || read(t, "r.txt") != "result\n" {
 		t.Fatalf("after concurrent stores: %+v", res)
 	}
 }

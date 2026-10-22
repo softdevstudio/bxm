@@ -1,0 +1,6 @@
+lines: 100000 (13.1 MB), distinct events: 90000, resends: 10000 (100 with qty written as a float)
+distinct by SHA-256 of the line: 100000 (duplicates found: 0)
+distinct by Canon hash: 90100 (duplicates found: 9900)
+distinct by SHA-256 of Python's sorted-key JSON: 90100 (duplicates found: 9900)
+left as different values by Canon: 100 (the float-qty resends)
+time, SHA-256 of lines: 0.11 s; parse with json.loads + Canon hash: 0.53 s (187,083 records/s); sorted-key JSON: 0.80 s; one run
