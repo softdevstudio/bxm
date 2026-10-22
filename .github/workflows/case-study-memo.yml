@@ -16,13 +16,13 @@ permissions:
   contents: read
 
 env:
-  BXM_MEMO_CACHE: ${{ github.workspace }}/../memo-cache
+  BXM_MEMO_CACHE: ${{ github.workspace }}/.memo-cache
 
 jobs:
   plain:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build without Memo
         run: |
           t0=$(date +%s.%N)
@@ -33,7 +33,7 @@ jobs:
   cold:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - &install
         name: Install bxm-memo from the latest release
         run: |
@@ -49,7 +49,7 @@ jobs:
             -- cargo build -q --release --manifest-path canon/Cargo.toml --bin bxm-canon 2> memo.log
           t1=$(date +%s.%N)
           canon/target/release/bxm-canon version
-          echo "::notice title=${{ github.job }}::$(head -1 memo.log | tr -d '\n'); $(sed -n '2,6p' memo.log | tr '\n' ' '); step took $(echo "$t1 - $t0" | bc) s"
+          echo "::notice title=${{ github.job }}::$(grep '^bxm-memo\|^  ' memo.log | paste -sd '|' -); step took $(echo "$t1 - $t0" | bc) s"
           du -sh "$BXM_MEMO_CACHE" | awk '{print "::notice title=${{ github.job }} cache::cache folder " $1}'
       - uses: actions/cache/save@v4
         with:
@@ -60,7 +60,7 @@ jobs:
     needs: [cold, plain]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - *install
       - &restore
         name: Restore the Memo cache
@@ -79,7 +79,7 @@ jobs:
     needs: warm
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - *install
       - *restore
       - uses: actions/cache/restore@v4
@@ -96,7 +96,7 @@ jobs:
     needs: docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - *install
       - *restore
       - uses: actions/cache/restore@v4
