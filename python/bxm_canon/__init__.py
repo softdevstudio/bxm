@@ -9,8 +9,8 @@ and the JavaScript package, so every one of them gives the same bytes.
     True
 """
 
+from ._errors import CanonError
 from ._core import (
-    CanonError,
     __version__,
     check,
     decode,

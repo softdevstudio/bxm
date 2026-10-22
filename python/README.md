@@ -29,7 +29,7 @@ canon.to_text(data)       # '{"n":3,"name":"bxm","raw":h"cafe","x":1.0}'
 | `int` (64-bit) | integer; larger ones raise `OverflowError` |
 | `float` | float; NaN, infinity and `-0.0` raise `CanonError` |
 | `str` | string; a lone surrogate raises `CanonError` |
-| `bytes`, `bytearray`, `memoryview` | bytes |
+| `bytes`, `bytearray`, `memoryview` of bytes | bytes (a view of ints or floats is refused: its bytes would differ between machines) |
 | `list`, `tuple` | array (decoded as `list`) |
 | `dict` with `str` keys | map (decoded with keys in byte order) |
 
@@ -52,8 +52,21 @@ differently. Anything else raises `TypeError`.
 | `hash_text(text)` | SHA-256 hex of a text value's canonical encoding |
 | `diff_text(a, b)` | the differences between two text values, one line each |
 
+`check`, `is_canonical` and `hash` release the GIL while they work, so
+threads can check large buffers in parallel.
+
 `CanonError` is a `ValueError` with `code` (for example `overlong-varint`,
 `keys-out-of-order`, or `text`) and the byte `offset` where it was found.
+
+## Platforms
+
+Wheels are built for Linux x86-64 and ARM64 (manylinux2014, glibc 2.17 and
+later), macOS on Apple silicon and Intel, and Windows x86-64, for Python 3.9
+and later. Other platforms, such as Alpine Linux or Windows on ARM, can build
+from the repository with `maturin build` and a Rust toolchain.
+
+Encoding a value nested 512 levels deep, the most Canon allows, needs about
+512 KB of thread stack. The main thread and normal threads have far more.
 
 ## More
 

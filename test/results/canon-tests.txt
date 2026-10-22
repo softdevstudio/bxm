@@ -1,13 +1,13 @@
-   Compiling bxm-canon v0.2.0 (/home/claude/bxm/canon)
-    Finished `release` profile [optimized] target(s) in 22.54s
-     Running unittests src/lib.rs (target/release/deps/bxm_canon-452252182738c053)
+   Compiling bxm-canon v0.3.0 (/home/claude/bxm/canon)
+    Finished `release` profile [optimized] target(s) in 22.05s
+     Running unittests src/lib.rs (target/release/deps/bxm_canon-d2ecfb74559c686b)
 
 running 12 tests
 test diff::tests::lists_paths ... ok
 test ffi::tests::c_api_round_trip ... ok
+test tests::depth_limit ... ok
 test tests::huge_declared_lengths_do_not_allocate ... ok
 test tests::map_order_is_byte_order ... ok
-test tests::depth_limit ... ok
 test tests::rejects_bad_floats_both_ways ... ok
 test tests::varint_round_trip_and_zigzag ... ok
 test text::tests::bytes_and_round_trip ... ok
@@ -18,22 +18,22 @@ test text::tests::surrogates ... ok
 
 test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests src/main.rs (target/release/deps/bxm_canon-34d495616684afe3)
+     Running unittests src/main.rs (target/release/deps/bxm_canon-85ed44c3de6e6cde)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/properties.rs (target/release/deps/properties-da98a2926a69f5cc)
+     Running tests/properties.rs (target/release/deps/properties-eb50980010ae644c)
 
 running 3 tests
 test key_order_in_text_does_not_change_the_bytes ... ok
 test accepted_bytes_are_the_only_encoding ... ok
 test values_round_trip_through_bytes_and_text ... ok
 
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.59s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s
 
-     Running tests/vectors.rs (target/release/deps/vectors-28ff162a6055ebfc)
+     Running tests/vectors.rs (target/release/deps/vectors-71b1f0b43c40db4f)
 
 running 2 tests
 test valid_vectors ... ok
@@ -46,5 +46,5 @@ test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 running 1 test
 test src/lib.rs - (line 7) ... ok
 
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.79s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.64s
 

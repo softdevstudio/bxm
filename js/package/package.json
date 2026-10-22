@@ -1,6 +1,6 @@
 {
   "name": "bxm-canon",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "BXM Canon: a binary encoding with exactly one valid encoding for every value. WebAssembly build of the Rust core.",
   "type": "module",
   "main": "./index.cjs",

@@ -1,8 +1,10 @@
 """Tests for the bxm-canon Python package. Run: python -m unittest discover -s tests"""
 
+import array
 import json
 import math
 import pathlib
+import pickle
 import unittest
 
 import bxm_canon as canon
@@ -96,6 +98,32 @@ class PythonValues(unittest.TestCase):
         self.assertFalse(canon.is_canonical(b""))
         with self.assertRaises(TypeError):
             canon.check("not bytes")
+
+
+class Errors(unittest.TestCase):
+    def test_canon_error_pickles_with_code_and_offset(self):
+        try:
+            canon.check(b"\x03\x80\x00")
+        except CanonError as e:
+            back = pickle.loads(pickle.dumps(e))
+            self.assertIsInstance(back, CanonError)
+            self.assertEqual((back.code, back.offset, str(back)), (e.code, e.offset, str(e)))
+            self.assertEqual(e.code, "overlong-varint")
+        else:
+            self.fail("no error")
+
+    def test_hand_made_error_has_defaults(self):
+        e = CanonError("x")
+        self.assertEqual((e.code, e.offset), ("error", -1))
+        self.assertEqual(CanonError.__module__, "bxm_canon._errors")
+
+    def test_memoryview_must_be_bytes(self):
+        with self.assertRaises(TypeError):
+            canon.encode(memoryview(array.array("i", [1, 2])))
+        with self.assertRaises(TypeError):
+            canon.check(memoryview(array.array("i", [1, 2])))
+        self.assertEqual(canon.decode(canon.encode(memoryview(b"abcdef")[::2])), b"ace")
+        self.assertEqual(canon.decode(canon.encode(memoryview(array.array("i", [1])).cast("B")))[:0], b"")
 
 
 class TextFunctions(unittest.TestCase):

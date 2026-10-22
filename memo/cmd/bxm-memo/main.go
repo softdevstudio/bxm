@@ -13,7 +13,7 @@ import (
 )
 
 // Version is raised with each release; CI checks it matches the VERSION file.
-const Version = "0.2.0"
+const Version = "0.3.0"
 
 // Exit code for bxm-memo's own errors, so they are not confused with the
 // wrapped command's exit codes (the same convention as env and docker).

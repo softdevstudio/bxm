@@ -1,1 +1,1 @@
-c api ok, version 0.2.0, hash eda3c50f6a8dea3d6d3334dcb143cb9afe14cc42cdfb51c59494a782dd677578
+c api ok, version 0.3.0, hash eda3c50f6a8dea3d6d3334dcb143cb9afe14cc42cdfb51c59494a782dd677578

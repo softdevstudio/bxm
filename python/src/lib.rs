@@ -6,7 +6,6 @@ use bxm_canon::{
     check as canon_check, decode as canon_decode, encode as canon_encode, hash_bytes, text, Value,
     MAX_DEPTH,
 };
-use pyo3::create_exception;
 use pyo3::exceptions::{PyOverflowError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{
@@ -14,20 +13,22 @@ use pyo3::types::{
 };
 use std::collections::BTreeMap;
 
-create_exception!(
-    _core,
-    CanonError,
-    PyValueError,
-    "An error from Canon, with `code` and `offset`."
-);
-
+/// Builds a bxm_canon.CanonError (defined in Python, see _errors.py, so it
+/// pickles and always has `code` and `offset`).
 fn canon_err(py: Python<'_>, message: String) -> PyErr {
     let (code, offset) = parse_message(&message);
-    let err = CanonError::new_err(message);
-    let v = err.value(py);
-    let _ = v.setattr("code", code);
-    let _ = v.setattr("offset", offset);
-    err
+    let made = py
+        .import("bxm_canon._errors")
+        .and_then(|m| m.getattr("CanonError"))
+        .and_then(|cls| cls.call1((message.clone(), code, offset)));
+    match made {
+        Ok(e) => PyErr::from_value(e),
+        Err(_) => PyValueError::new_err(message),
+    }
+}
+
+fn is_memoryview(obj: &Bound<'_, PyAny>) -> PyResult<bool> {
+    Ok(obj.get_type().name()? == "memoryview")
 }
 
 /// "keys-out-of-order at byte 7: ..." -> ("keys-out-of-order", 7); "text at byte 3: ..." -> ("text", 3)
@@ -46,7 +47,17 @@ fn bytes_of(data: &Bound<'_, PyAny>) -> PyResult<Vec<u8>> {
     if let Ok(b) = data.cast::<PyBytes>() {
         return Ok(b.as_bytes().to_vec());
     }
-    if data.is_instance_of::<PyByteArray>() || data.get_type().name()? == "memoryview" {
+    if data.is_instance_of::<PyByteArray>() || is_memoryview(data)? {
+        if is_memoryview(data)? {
+            // A view of ints or floats would be native-endian, so the bytes
+            // would differ between machines. Only byte views are allowed.
+            let format: String = data.getattr("format")?.extract()?;
+            if !matches!(format.as_str(), "B" | "b" | "c") {
+                return Err(PyTypeError::new_err(format!(
+                    "memoryview format {format:?} is not bytes; pass .cast('B') or bytes(...) explicitly"
+                )));
+            }
+        }
         let b = data.py().get_type::<PyBytes>().call1((data,))?;
         return Ok(b.cast::<PyBytes>()?.as_bytes().to_vec());
     }
@@ -84,9 +95,7 @@ fn to_value(obj: &Bound<'_, PyAny>, depth: usize) -> PyResult<Value> {
                 )
             });
     }
-    if obj.is_instance_of::<PyBytes>()
-        || obj.is_instance_of::<PyByteArray>()
-        || obj.get_type().name()? == "memoryview"
+    if obj.is_instance_of::<PyBytes>() || obj.is_instance_of::<PyByteArray>() || is_memoryview(obj)?
     {
         return Ok(Value::Bytes(bytes_of(obj)?));
     }
@@ -186,21 +195,23 @@ fn decode<'py>(py: Python<'py>, data: &Bound<'py, PyAny>) -> PyResult<Bound<'py,
 #[pyfunction]
 fn check(py: Python<'_>, data: &Bound<'_, PyAny>) -> PyResult<()> {
     let b = bytes_of(data)?;
-    canon_check(&b).map_err(|e| canon_err(py, e.to_string()))
+    py.detach(|| canon_check(&b))
+        .map_err(|e| canon_err(py, e.to_string()))
 }
 
 /// True when the bytes are exactly one canonical value.
 #[pyfunction]
-fn is_canonical(data: &Bound<'_, PyAny>) -> PyResult<bool> {
-    Ok(canon_check(&bytes_of(data)?).is_ok())
+fn is_canonical(py: Python<'_>, data: &Bound<'_, PyAny>) -> PyResult<bool> {
+    let b = bytes_of(data)?;
+    Ok(py.detach(|| canon_check(&b).is_ok()))
 }
 
 /// Lowercase hex SHA-256 of canonical bytes (checked first).
 #[pyfunction]
 fn hash(py: Python<'_>, data: &Bound<'_, PyAny>) -> PyResult<String> {
     let b = bytes_of(data)?;
-    canon_check(&b).map_err(|e| canon_err(py, e.to_string()))?;
-    Ok(hash_bytes(&b))
+    py.detach(|| canon_check(&b).map(|_| hash_bytes(&b)))
+        .map_err(|e| canon_err(py, e.to_string()))
 }
 
 /// Lowercase hex SHA-256 of the canonical encoding of a Python value.
@@ -261,7 +272,6 @@ fn diff_text(py: Python<'_>, a: &str, b: &str) -> PyResult<Vec<String>> {
 
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add("CanonError", m.py().get_type::<CanonError>())?;
     m.add("__version__", bxm_canon::VERSION)?;
     m.add_function(wrap_pyfunction!(encode, m)?)?;
     m.add_function(wrap_pyfunction!(decode, m)?)?;

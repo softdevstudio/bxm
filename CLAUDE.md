@@ -24,6 +24,11 @@ and config values only; never touch the theme).
 - An independent review agent looks at code and site before a release is
   called done.
 - main is the default branch. No side branches.
+- PyPI and npm uploads can't be replaced. Once a version is on either, any
+  further change, even a fix to the release itself, ships as a new version.
+- GitHub job logs can't be downloaded from these sessions, but annotations can
+  (`gh api repos/softdevstudio/bxm/check-runs/<job id>/annotations`). Scripts
+  print `::error::` lines for that reason.
 
 ## State
 
