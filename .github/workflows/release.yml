@@ -1,0 +1,152 @@
+name: Release
+
+# Runs after CI finishes on main. If VERSION names a version that has no tag
+# yet, it builds both tools for Linux, macOS and Windows, smoke-tests every
+# build, and only then tags the commit and publishes the release. Archive
+# names carry no version, so releases/latest/download links never change.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Rebuild the assets of an existing tag (for example v0.1.0)"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  plan:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      sha: ${{ steps.v.outputs.sha }}
+      go: ${{ steps.v.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+      - id: v
+        run: |
+          v=$(tr -d '[:space:]' < VERSION)
+          sha=$(git rev-parse HEAD)
+          if [ -z "${{ github.event.inputs.tag }}" ] && git ls-remote --exit-code --tags origin "refs/tags/v$v" >/dev/null; then
+            echo "v$v is already released; nothing to do"
+            v=""
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.version != ''
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { os: ubuntu-latest,    name: linux-amd64,   rust: x86_64-unknown-linux-gnu,  goos: linux,   goarch: amd64, ext: "" }
+          - { os: ubuntu-24.04-arm, name: linux-arm64,   rust: aarch64-unknown-linux-gnu, goos: linux,   goarch: arm64, ext: "" }
+          - { os: macos-latest,     name: darwin-arm64,  rust: aarch64-apple-darwin,      goos: darwin,  goarch: arm64, ext: "" }
+          - { os: macos-latest,     name: darwin-amd64,  rust: x86_64-apple-darwin,       goos: darwin,  goarch: amd64, ext: "" }
+          - { os: windows-latest,   name: windows-amd64, rust: x86_64-pc-windows-msvc,    goos: windows, goarch: amd64, ext: ".exe" }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust }}
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache-dependency-path: memo/go.mod
+      - name: Build
+        run: |
+          set -eux
+          (cd canon && cargo build --release --target ${{ matrix.rust }})
+          (cd memo && CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
+            go build -trimpath -ldflags "-s -w" -o ../dist/stage/bxm-memo${{ matrix.ext }} ./cmd/bxm-memo)
+          d=dist/stage
+          mkdir -p $d/lib $d/include
+          t=canon/target/${{ matrix.rust }}/release
+          cp $t/bxm-canon${{ matrix.ext }} $d/
+          cp canon/include/bxm_canon.h $d/include/
+          for f in libbxm_canon.a libbxm_canon.so libbxm_canon.dylib bxm_canon.lib bxm_canon.dll; do
+            [ -f $t/$f ] && cp $t/$f $d/lib/ || true
+          done
+          cp LICENSE NOTICE THIRD_PARTY_LICENSES.md README.md CHANGELOG.md $d/
+          cp -r spec $d/
+      - name: Smoke test
+        if: matrix.name != 'darwin-amd64'
+        run: |
+          set -eux
+          d=dist/stage
+          $d/bxm-canon${{ matrix.ext }} version
+          $d/bxm-memo${{ matrix.ext }} version
+          a=$(printf '{"b":[1,2.5,h"ff"],"a":"x"}' | $d/bxm-canon${{ matrix.ext }} hash --text)
+          b=$(printf '{"a":"x","b":[1,2.5,h"ff"]}' | $d/bxm-canon${{ matrix.ext }} hash --text)
+          [ "$a" = "$b" ]
+          printf '{"k":[true,null,-3]}' | $d/bxm-canon${{ matrix.ext }} encode -o v.bxm
+          $d/bxm-canon${{ matrix.ext }} check v.bxm
+          [ "$($d/bxm-canon${{ matrix.ext }} decode v.bxm)" = '{"k":[true,null,-3]}' ]
+          echo in > in.txt
+          export BXM_MEMO_CACHE="$PWD/smoke-cache"
+          $d/bxm-memo${{ matrix.ext }} run -i in.txt -o out.txt -- bash -c 'cp in.txt out.txt'
+          rm out.txt
+          $d/bxm-memo${{ matrix.ext }} run -i in.txt -o out.txt -- bash -c 'cp in.txt out.txt' 2>&1 | tee log.txt
+          grep -q hit log.txt
+          [ "$(cat out.txt)" = in ]
+      - name: Package
+        run: |
+          set -eux
+          cd dist
+          mv stage bxm-${{ matrix.name }}
+          if [ "${{ matrix.goos }}" = windows ]; then
+            7z a -tzip bxm-${{ matrix.name }}.zip bxm-${{ matrix.name }} >/dev/null
+          else
+            tar czf bxm-${{ matrix.name }}.tar.gz bxm-${{ matrix.name }}
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bxm-${{ matrix.name }}
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+
+  publish:
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eux
+          v=${{ needs.plan.outputs.version }}
+          cd dist
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+          cd ..
+          awk "/^## $v/{f=1;next} /^## /{f=0} f" CHANGELOG.md > notes.md
+          if gh release view "v$v" >/dev/null 2>&1; then
+            gh release upload "v$v" dist/* --clobber
+          else
+            gh release create "v$v" dist/* --target "${{ needs.plan.outputs.sha }}" \
+              --title "BXM v$v" --notes-file notes.md
+          fi

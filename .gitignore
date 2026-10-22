@@ -1,0 +1,4 @@
+/canon/target/
+/dist/
+*.test
+.DS_Store

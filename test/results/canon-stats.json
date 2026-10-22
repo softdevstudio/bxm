@@ -1,0 +1,10 @@
+{
+  "cases": 2000000,
+  "accepted": 334062,
+  "accepted_but_not_canonical": 0,
+  "doc_bytes": 1142829,
+  "doc_text_bytes": 1902960,
+  "encode_mb_per_s": 876,
+  "decode_mb_per_s": 114,
+  "check_mb_per_s": 669
+}
