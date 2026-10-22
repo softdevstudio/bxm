@@ -1,0 +1,110 @@
+name: Case study - Memo in GitHub Actions
+
+# Case study 4 (examples/case-studies/04-github-actions). Runs only by hand.
+# A release build of bxm-canon is wrapped in bxm-memo and its cache kept with
+# actions/cache. Four jobs run one after another, each on a fresh runner:
+#   plain:   cargo build --release, no Memo, for the baseline
+#   cold:    the same build through Memo with an empty cache (a miss)
+#   warm:    nothing changed (a hit: the binary comes from the cache)
+#   docs:    README.md edited, which isn't an input (still a hit)
+#   source:  canon/src/main.rs edited (a miss that names the file)
+# Each job prints its timings as ::notice:: annotations.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BXM_MEMO_CACHE: ${{ github.workspace }}/../memo-cache
+
+jobs:
+  plain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build without Memo
+        run: |
+          t0=$(date +%s.%N)
+          cargo build -q --release --manifest-path canon/Cargo.toml --bin bxm-canon
+          t1=$(date +%s.%N)
+          echo "::notice title=plain::cargo build --release took $(echo "$t1 - $t0" | bc) s"
+
+  cold:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - &install
+        name: Install bxm-memo from the latest release
+        run: |
+          curl -sSL https://github.com/softdevstudio/bxm/releases/latest/download/bxm-linux-amd64.tar.gz | tar xz
+          echo "$PWD/bxm-linux-amd64" >> "$GITHUB_PATH"
+      - &build
+        name: Build through Memo
+        run: |
+          t0=$(date +%s.%N)
+          bxm-memo run -n canon-release \
+            -i 'canon/src/**' -i canon/Cargo.toml -i canon/Cargo.lock \
+            -o canon/target/release/bxm-canon --salt "$(rustc --version)" \
+            -- cargo build -q --release --manifest-path canon/Cargo.toml --bin bxm-canon 2> memo.log
+          t1=$(date +%s.%N)
+          canon/target/release/bxm-canon version
+          echo "::notice title=${{ github.job }}::$(head -1 memo.log | tr -d '\n'); $(sed -n '2,6p' memo.log | tr '\n' ' '); step took $(echo "$t1 - $t0" | bc) s"
+          du -sh "$BXM_MEMO_CACHE" | awk '{print "::notice title=${{ github.job }} cache::cache folder " $1}'
+      - uses: actions/cache/save@v4
+        with:
+          path: ${{ env.BXM_MEMO_CACHE }}
+          key: memo-cs4-${{ github.run_id }}
+
+  warm:
+    needs: [cold, plain]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - *install
+      - &restore
+        name: Restore the Memo cache
+        run: echo "T_RESTORE=$(date +%s.%N)" >> "$GITHUB_ENV"
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.BXM_MEMO_CACHE }}
+          key: memo-cs4-${{ github.run_id }}
+          fail-on-cache-miss: true
+      - &restored
+        name: Time the restore
+        run: echo "::notice title=${{ github.job }} restore::actions/cache restore took $(echo "$(date +%s.%N) - $T_RESTORE" | bc) s"
+      - *build
+
+  docs:
+    needs: warm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - *install
+      - *restore
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.BXM_MEMO_CACHE }}
+          key: memo-cs4-${{ github.run_id }}
+          fail-on-cache-miss: true
+      - *restored
+      - name: Edit the README, which is not an input
+        run: echo "One more line." >> README.md
+      - *build
+
+  source:
+    needs: docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - *install
+      - *restore
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.BXM_MEMO_CACHE }}
+          key: memo-cs4-${{ github.run_id }}
+          fail-on-cache-miss: true
+      - *restored
+      - name: Edit a source file
+        run: echo "// one more comment" >> canon/src/main.rs
+      - *build
