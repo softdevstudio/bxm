@@ -21,6 +21,9 @@ pub mod text;
 /// Maximum nesting of arrays and maps.
 pub const MAX_DEPTH: usize = 512;
 
+/// Version of this library.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 /// Format version described by `spec/CANON.md`.
 pub const FORMAT_VERSION: u32 = 1;
 

@@ -1,0 +1,21 @@
+[package]
+name = "bxm-canon-wasm"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+description = "BXM Canon compiled to WebAssembly for the bxm-canon npm package"
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[dependencies]
+bxm-canon = { path = "../../canon" }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

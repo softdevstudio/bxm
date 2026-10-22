@@ -1,0 +1,33 @@
+{
+  "name": "bxm-canon",
+  "version": "0.1.0",
+  "description": "BXM Canon: a binary encoding with exactly one valid encoding for every value. WebAssembly build of the Rust core.",
+  "type": "module",
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "require": "./index.cjs"
+    }
+  },
+  "files": ["index.js", "index.cjs", "index.d.ts", "README.md", "LICENSE", "NOTICE"],
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": ["canonical", "encoding", "serialization", "hash", "signature", "deterministic", "json", "wasm"],
+  "homepage": "https://bxm.net/canon/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/softdevstudio/bxm.git",
+    "directory": "js/package"
+  },
+  "bugs": "https://github.com/softdevstudio/bxm/issues",
+  "license": "Apache-2.0",
+  "sideEffects": false
+}

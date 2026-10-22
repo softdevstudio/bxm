@@ -2,3 +2,9 @@
 /dist/
 *.test
 .DS_Store
+/js/wasm/target/
+/js/package/index.js
+/js/package/index.cjs
+/js/package/LICENSE
+/js/package/NOTICE
+/js/package/*.tgz

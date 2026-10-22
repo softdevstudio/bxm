@@ -55,3 +55,26 @@ jobs:
       - run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go vet ./...
       - run: go test -count=1 -race ./...
+
+  js:
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["18", "22"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: scripts/build-js.sh --pack
+      - name: Install the packed package and use it
+        run: |
+          set -eux
+          mkdir -p /tmp/use && cd /tmp/use && npm init -y >/dev/null
+          npm install "$GITHUB_WORKSPACE/dist/bxm-canon-js.tgz"
+          node --input-type=module -e "import {load} from 'bxm-canon'; const c = await load(); if (c.hashText('{\"b\":1,\"a\":2}') !== 'e70e7c7b89c3a8b38fe00713290413936c9f976266c102b35aa91556dcc5233a') process.exit(1); console.log('esm ok', c.version)"
+          node -e "require('bxm-canon').load().then(c => { if (!c.isCanonical(c.fromText('[1]'))) process.exit(1); console.log('cjs ok') })"

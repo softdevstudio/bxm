@@ -135,8 +135,34 @@ jobs:
             dist/*.tar.gz
             dist/*.zip
 
+  js:
+    needs: plan
+    if: needs.plan.outputs.version != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: scripts/build-js.sh --pack
+      - name: Smoke test the packed package
+        run: |
+          set -eux
+          mkdir -p /tmp/use && cd /tmp/use && npm init -y >/dev/null
+          npm install "$GITHUB_WORKSPACE/dist/bxm-canon-js.tgz"
+          node --input-type=module -e "import {load} from 'bxm-canon'; const c = await load(); if (c.version !== '${{ needs.plan.outputs.version }}') process.exit(1); console.log('ok', c.version)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bxm-canon-js
+          path: dist/bxm-canon-js.tgz
+
   publish:
-    needs: [plan, build]
+    needs: [plan, build, js]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -163,3 +189,22 @@ jobs:
             gh release create "v$v" dist/* --target "${{ needs.plan.outputs.sha }}" \
               --title "BXM v$v" --notes-file notes.md
           fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+      - name: Publish to npm (when an NPM_TOKEN secret is set)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -eu
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::notice::No NPM_TOKEN secret; the npm package is attached to the GitHub release only."
+            exit 0
+          fi
+          v=${{ needs.plan.outputs.version }}
+          if npm view "bxm-canon@$v" version >/dev/null 2>&1; then
+            echo "bxm-canon@$v is already on npm"
+            exit 0
+          fi
+          npm publish dist/bxm-canon-js.tgz --access public
