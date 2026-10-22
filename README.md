@@ -139,7 +139,21 @@ canon.hashText('{"b":1,"a":2}') === canon.hashText('{ "a": 2, "b": 1 }'); // tru
 Every release carries the package as `bxm-canon-js.tgz`, so the link above
 always gives the latest. See [js/package/README.md](js/package/README.md).
 
-A Python package built on the same core is next.
+Python 3.9+, with wheels for Linux, macOS and Windows built from the same
+core:
+
+```sh
+pip install bxm-canon --find-links https://github.com/softdevstudio/bxm/releases/expanded_assets/v0.3.0
+```
+
+```python
+import bxm_canon as canon
+canon.hash_value({"b": 1, "a": 2}) == canon.hash_value({"a": 2, "b": 1})  # True
+data = canon.encode({"n": 3, "x": 1.0, "raw": b"\xca\xfe"})   # ints, floats and bytes stay apart
+canon.decode(data)
+```
+
+See [python/README.md](python/README.md).
 
 ### Conformance
 

@@ -1,0 +1,22 @@
+[package]
+name = "bxm-canon-python"
+version = "0.2.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+description = "Python bindings for BXM Canon"
+
+[lib]
+name = "_core"
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[dependencies]
+bxm-canon = { path = "../canon" }
+pyo3 = { version = "0.30", features = ["abi3-py39", "extension-module"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["maturin>=1.5,<2"]
+build-backend = "maturin"
+
+[project]
+name = "bxm-canon"
+version = "0.2.0"
+description = "BXM Canon: a binary encoding with exactly one valid encoding for every value"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.9"
+keywords = ["canonical", "encoding", "serialization", "hash", "signature", "deterministic", "json"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Rust",
+  "Operating System :: OS Independent",
+  "Topic :: Software Development :: Libraries",
+]
+
+[project.urls]
+Homepage = "https://bxm.net/canon/"
+Source = "https://github.com/softdevstudio/bxm"
+Issues = "https://github.com/softdevstudio/bxm/issues"
+
+[tool.maturin]
+module-name = "bxm_canon._core"
+python-source = "."
+python-packages = ["bxm_canon"]
+features = ["pyo3/extension-module"]

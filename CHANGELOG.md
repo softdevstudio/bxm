@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0
+
+BXM Canon for Python.
+- The `bxm-canon` Python package: the Rust core through PyO3, one wheel per
+  platform for Python 3.9 and later (Linux x86-64 and ARM64, macOS Apple
+  silicon and Intel, Windows x86-64), no dependencies, with type hints.
+- `encode` and `decode` map Python values directly: `int` and `float` stay
+  apart, `bytes` are bytes, dict keys come back in byte order.
+- The same text, check, hash and diff functions as the command and the
+  JavaScript package, tested against the spec vectors on Linux, macOS and
+  Windows with Python 3.9 and 3.13.
+
 ## 0.2.0
 
 BXM Canon for JavaScript.

@@ -8,3 +8,7 @@
 /js/package/LICENSE
 /js/package/NOTICE
 /js/package/*.tgz
+/python/target/
+/python/LICENSE
+/python/NOTICE
+__pycache__/

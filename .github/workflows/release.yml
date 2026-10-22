@@ -161,8 +161,53 @@ jobs:
           name: bxm-canon-js
           path: dist/bxm-canon-js.tgz
 
+  python:
+    needs: plan
+    if: needs.plan.outputs.version != ''
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { os: ubuntu-latest,    name: linux-x86_64,   target: x86_64,  manylinux: "2014", test: true }
+          - { os: ubuntu-24.04-arm, name: linux-aarch64,  target: aarch64, manylinux: "2014", test: true }
+          - { os: macos-latest,     name: macos-arm64,    target: aarch64, manylinux: "",     test: true }
+          - { os: macos-latest,     name: macos-x86_64,   target: x86_64,  manylinux: "",     test: false }
+          - { os: windows-latest,   name: windows-x86_64, target: x64,     manylinux: "",     test: true }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: cp LICENSE NOTICE python/
+      - uses: PyO3/maturin-action@v1
+        with:
+          working-directory: python
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux || 'off' }}
+          args: --release -o ../dist/python
+      - name: Smoke test the wheel
+        if: matrix.test
+        run: |
+          set -eux
+          python -m venv /tmp/v || python -m venv v
+          bin=/tmp/v/bin; [ -d "$bin" ] || bin=/tmp/v/Scripts; [ -d "$bin" ] || bin=v/Scripts
+          "$bin/python" -m pip install --no-index --find-links dist/python bxm-canon
+          cd "$RUNNER_TEMP"
+          "$bin/python" -c "import bxm_canon as c; assert c.__version__ == '${{ needs.plan.outputs.version }}'; assert c.hash_value({'b': 1, 'a': 2}) == 'e70e7c7b89c3a8b38fe00713290413936c9f976266c102b35aa91556dcc5233a'; print('ok', c.__version__)"
+          "$bin/python" -m unittest discover -s "$GITHUB_WORKSPACE/python/tests"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-${{ matrix.name }}
+          path: dist/python/*.whl
+
   publish:
-    needs: [plan, build, js]
+    needs: [plan, build, js, python]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -176,7 +221,22 @@ jobs:
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
-      # npm goes first: if it fails, no tag exists yet and the next run retries.
+      # PyPI and npm go first: if one fails, no tag exists yet and the next run retries.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Publish to PyPI (when a PYPI_TOKEN secret is set)
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          set -eu
+          if [ -z "$TWINE_PASSWORD" ]; then
+            echo "::notice::No PYPI_TOKEN secret; the wheels are attached to the GitHub release only."
+            exit 0
+          fi
+          python -m pip install -q twine
+          python -m twine upload --skip-existing dist/*.whl
       - name: Publish to npm (when an NPM_TOKEN secret is set)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

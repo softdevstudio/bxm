@@ -19,6 +19,25 @@ full license texts are in their source packages on crates.io.
 
 The binaries also contain the Rust standard library (MIT OR Apache-2.0).
 
+## BXM Canon for JavaScript
+
+The npm package contains the Canon crate and the crates listed above,
+compiled to WebAssembly. It has no JavaScript dependencies.
+
+## BXM Canon for Python
+
+The Python wheels contain the Canon crate and the crates listed above, plus:
+
+| Crate     | Version | License           | Source                              |
+|-----------|---------|-------------------|-------------------------------------|
+| pyo3      | 0.30.1  | MIT OR Apache-2.0 | https://github.com/PyO3/pyo3        |
+| pyo3-ffi  | 0.30.1  | MIT OR Apache-2.0 | https://github.com/PyO3/pyo3        |
+| once_cell | 1.21.4  | MIT OR Apache-2.0 | https://github.com/matklad/once_cell |
+| libc      | 0.2.191 | MIT OR Apache-2.0 | https://github.com/rust-lang/libc   |
+
+PyO3's procedural macros and build helpers run only at build time and are not
+part of the wheels.
+
 ## BXM Memo (Go)
 
 BXM Memo uses only the Go standard library, which is under the BSD 3-Clause
