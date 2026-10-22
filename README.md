@@ -227,8 +227,9 @@ bxm-memo clear                                  # delete the whole cache
 - If an input changes while the command runs, the result is not stored.
 - Results are keyed per OS and CPU type.
 - Many processes can share one cache at the same time. Give each one its own
-  working directory: two runs that write the same output files in one
-  directory race with each other, with or without Memo.
+  working directory. If two runs write the same output files in one directory
+  at the same time, Memo can store a file the other run is still rewriting,
+  and later hits restore that copy.
 - Outputs must be paths inside the working directory: not `.`, not `..` and
   not absolute, since a hit replaces them.
 - Symlinks inside input directories are followed. A broken link is an error,

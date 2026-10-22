@@ -25,7 +25,7 @@ now() { date +%s.%N; }
 # and Memo never caches a failed run, so the next commit runs it again.
 fail() {
   eval "$1=FAILED"
-  { echo "== $1 tests failed at $c ($mode $setting)"; grep -E -- '^(--- FAIL|FAIL|test result: FAILED|panicked| +main_test|thread )' "logs/$1.txt" | head -10; } >> "$work/failures.txt"
+  { echo "== $1 tests failed at $c ($mode $setting)"; grep -E -- '^(--- FAIL|FAIL|test result: FAILED|panicked| +[a-z_]+_test\.go|thread )' "logs/$1.txt" | head -10; } >> "$work/failures.txt"
 }
 # Download the Rust dependencies once, so no pass pays for the network.
 cargo fetch -q --manifest-path "$work/src/canon/Cargo.toml"
