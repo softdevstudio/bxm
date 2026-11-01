@@ -1,5 +1,7 @@
 # BXM: where the next session starts
 
+0.4.0 is released and Phase A of softdev-plan item 36 is done; nothing is in progress. Publishing Canon to npm and PyPI waits for YK: it needs his registry accounts (tokens or trusted publishing). The release workflow already publishes to npm when an NPM_TOKEN secret exists. The memo-hit-miss.png image on bxm.net still shows the 0.1 speed figures (61 ms, 2.6 s); the Memo page text uses the 0.4 recording.
+
 This repo holds two products under one roof, bxm.net:
 
 - `canon/` BXM Canon, Rust. Canonical binary encoding. Spec in `spec/CANON.md`,
@@ -30,7 +32,7 @@ and config values only; never touch the theme).
   (`gh api repos/softdevstudio/bxm/check-runs/<job id>/annotations`). Scripts
   print `::error::` lines for that reason.
 
-## In progress: BXM 0.4 Phase A (softdev-plan item 36, approved by YK 2026-11-01)
+## Done: BXM 0.4 Phase A (softdev-plan item 36, approved by YK 2026-11-01)
 
 What and why: Memo's main use is CI, but the README only says "point it at a cache"; and two runs writing the same outputs at once can store a half-rewritten file (README states it). npm/PyPI publishing is not in this phase: it needs YK's registry accounts and he hasn't decided.
 
@@ -45,7 +47,7 @@ Steps:
 3. [x] Upkeep, README, CHANGELOG. GitHub serves no "latest" page of release files for pip (expanded_assets/latest is 404), so the pip line keeps naming a version and check-version.sh now fails when it doesn't name VERSION. README: locks under Rules worth knowing, the Action under In CI, Go 1.26, CI line names the Windows jobs.
 4. [x] Independent review, two rounds; round 2 found one regression (a nested run on a sibling output was refused because shared locks were treated as conflicts), fixed by recording each held lock's mode in BXM_MEMO_HELD (key:x / key:s) and refusing only when one side is exclusive, with a unit and an end-to-end test. Fresh test/results recorded locally (Go 1.24 via scratch go.mod; CI runs stable Go).
 5. [x] BXM 0.4.0 released by the workflow (commit 2ece11c, 12 assets). The five archives match SHA256SUMS at the tag and latest; expanded_assets/v0.4.0 lists the five wheels for the README's pip line. The downloaded Linux bxm-memo: three parallel identical runs ran the command once (two waited, then hit); a nested run on its parent's output exited 125 at once. Memo action test download job passed on Linux, macOS and Windows, pinned and latest (run 41287342149).
-6. [ ] bxm.net post, softdevstudio.com note, softdev-plan.md status.
+6. [x] bxm.net release post with its image, Memo page (locks, the action, speed figures from the 0.4 recording), --lock-wait in the reference, Go 1.26 on the download page (site commit 2f618ca); softdevstudio.com note and listing; softdev-plan.md item 36 marked Phase A done.
 
 CI note (2026-11-01): ubuntu-latest became Ubuntu 26.04, which has no Python 3.9, so the python (ubuntu, 3.9) job couldn't start. That row now runs on ubuntu-24.04; the wheels still promise 3.9. When 24.04 runners go away, raising the floor to 3.10 is YK's call.
 
