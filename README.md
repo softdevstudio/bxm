@@ -143,7 +143,7 @@ Python 3.9+, with wheels for Linux, macOS and Windows built from the same
 core:
 
 ```sh
-pip install bxm-canon --find-links https://github.com/softdevstudio/bxm/releases/expanded_assets/v0.3.0
+pip install bxm-canon --find-links https://github.com/softdevstudio/bxm/releases/expanded_assets/v0.4.0
 ```
 
 ```python

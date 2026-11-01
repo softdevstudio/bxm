@@ -353,3 +353,19 @@ func TestFolderAndFileInsideItTakeTurns(t *testing.T) {
 		t.Fatalf("restored %q (%s)", b, errOut)
 	}
 }
+
+// A wrapped build script may memoize its own sub-steps into sibling files of
+// one output folder.
+func TestNestedRunOnASiblingOutputWorks(t *testing.T) {
+	e := newEnv(t)
+	e.file("in.txt", "x", 0o644)
+	e.file("outer.sh", "#!/bin/sh\nmkdir -p build\necho a > build/a\nexec \""+bin+"\" run -i in.txt -o build/b -- sh -c 'echo b > build/b'\n", 0o755)
+	_, errOut, code := e.run("run", "-i", "in.txt", "-o", "build/a", "--", "./outer.sh")
+	if code != 0 {
+		t.Fatalf("%d %q", code, errOut)
+	}
+	b, _ := os.ReadFile(filepath.Join(e.dir, "build/b"))
+	if string(b) != "b\n" {
+		t.Fatalf("%q", b)
+	}
+}

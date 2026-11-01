@@ -194,6 +194,27 @@ func TestNestedRunFailsInsteadOfWaiting(t *testing.T) {
 	r2()
 }
 
+func TestNestedRunMaySharePlainFolders(t *testing.T) {
+	chdir(t, t.TempDir())
+	c := &Cache{Dir: t.TempDir()}
+	r, keys, err := c.LockOutputs([]string{"build/a"}, LockOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r()
+	t.Setenv(HeldEnv, strings.Join(keys, ","))
+	// A sibling only shares build with the parent: allowed.
+	r2, _, err := c.LockOutputs([]string{"build/b"}, LockOptions{Wait: time.Second})
+	if err != nil {
+		t.Fatal("sibling refused:", err)
+	}
+	r2()
+	// The whole folder would need build exclusively: refused at once.
+	if _, _, err := c.LockOutputs([]string{"build"}, LockOptions{}); err == nil || !strings.Contains(err.Error(), "enclosing") {
+		t.Fatal(err)
+	}
+}
+
 func TestSymlinkSpellingsShareALock(t *testing.T) {
 	proj := t.TempDir()
 	chdir(t, proj)

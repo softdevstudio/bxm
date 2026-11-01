@@ -1,19 +1,51 @@
 === RUN   TestExitCodesPassThrough
---- PASS: TestExitCodesPassThrough (0.01s)
+--- PASS: TestExitCodesPassThrough (0.02s)
 === RUN   TestManyProcessesShareOneCache
---- PASS: TestManyProcessesShareOneCache (0.38s)
+--- PASS: TestManyProcessesShareOneCache (0.39s)
 === RUN   TestKilledRunLeavesNoEntry
---- PASS: TestKilledRunLeavesNoEntry (0.50s)
+--- PASS: TestKilledRunLeavesNoEntry (0.51s)
 === RUN   TestExplainSaysWhy
 --- PASS: TestExplainSaysWhy (0.01s)
 === RUN   TestGCAndClear
---- PASS: TestGCAndClear (0.01s)
+--- PASS: TestGCAndClear (0.02s)
+=== RUN   TestSharedOutputIsNotStoredHalfWritten
+--- PASS: TestSharedOutputIsNotStoredHalfWritten (2.18s)
+=== RUN   TestIdenticalRunsRunTheCommandOnce
+--- PASS: TestIdenticalRunsRunTheCommandOnce (1.29s)
+=== RUN   TestKilledLockHolderReleases
+--- PASS: TestKilledLockHolderReleases (0.51s)
+=== RUN   TestNestedRunOnSameOutputFailsFast
+--- PASS: TestNestedRunOnSameOutputFailsFast (0.01s)
+=== RUN   TestRunsWithoutLocksWhenTheyCantBeMade
+--- PASS: TestRunsWithoutLocksWhenTheyCantBeMade (0.01s)
+=== RUN   TestFolderAndFileInsideItTakeTurns
+--- PASS: TestFolderAndFileInsideItTakeTurns (2.11s)
+=== RUN   TestNestedRunOnASiblingOutputWorks
+--- PASS: TestNestedRunOnASiblingOutputWorks (0.01s)
 PASS
-ok  	github.com/softdevstudio/bxm/memo/cmd/bxm-memo	2.407s
+ok  	github.com/softdevstudio/bxm/memo/cmd/bxm-memo	8.427s
+=== RUN   TestOutputLockExcludesAndWaits
+--- PASS: TestOutputLockExcludesAndWaits (0.32s)
+=== RUN   TestDifferentOutputsDoNotBlock
+--- PASS: TestDifferentOutputsDoNotBlock (0.00s)
+=== RUN   TestOutputLocksInAnyOrderDoNotDeadlock
+--- PASS: TestOutputLocksInAnyOrderDoNotDeadlock (0.10s)
+=== RUN   TestLocksStayInTheCache
+--- PASS: TestLocksStayInTheCache (0.00s)
+=== RUN   TestOverlappingOutputsExclude
+--- PASS: TestOverlappingOutputsExclude (0.47s)
+=== RUN   TestNestedRunFailsInsteadOfWaiting
+--- PASS: TestNestedRunFailsInsteadOfWaiting (0.00s)
+=== RUN   TestNestedRunMaySharePlainFolders
+--- PASS: TestNestedRunMaySharePlainFolders (0.00s)
+=== RUN   TestSymlinkSpellingsShareALock
+--- PASS: TestSymlinkSpellingsShareALock (0.00s)
+=== RUN   TestUnusableLockFolderIsReported
+--- PASS: TestUnusableLockFolderIsReported (0.00s)
 === RUN   TestHitRestoresOutputsAndReplaysOutput
---- PASS: TestHitRestoresOutputsAndReplaysOutput (0.03s)
+--- PASS: TestHitRestoresOutputsAndReplaysOutput (0.01s)
 === RUN   TestMissReasons
---- PASS: TestMissReasons (0.03s)
+--- PASS: TestMissReasons (0.02s)
 === RUN   TestKeyDoesNotDependOnFlagOrder
 --- PASS: TestKeyDoesNotDependOnFlagOrder (0.00s)
 === RUN   TestFailedCommandIsNotCached
@@ -21,13 +53,13 @@ ok  	github.com/softdevstudio/bxm/memo/cmd/bxm-memo	2.407s
 === RUN   TestMissingOutputIsNotCached
 --- PASS: TestMissingOutputIsNotCached (0.00s)
 === RUN   TestDamagedObjectFallsBackToRunning
---- PASS: TestDamagedObjectFallsBackToRunning (0.04s)
+--- PASS: TestDamagedObjectFallsBackToRunning (0.01s)
 === RUN   TestRestoreLeavesOutputsAloneWhenAnyObjectIsBad
---- PASS: TestRestoreLeavesOutputsAloneWhenAnyObjectIsBad (0.02s)
+--- PASS: TestRestoreLeavesOutputsAloneWhenAnyObjectIsBad (0.01s)
 === RUN   TestDirectoryOutputMatchesCachedRun
---- PASS: TestDirectoryOutputMatchesCachedRun (0.02s)
+--- PASS: TestDirectoryOutputMatchesCachedRun (0.01s)
 === RUN   TestExecutableBitIsRestored
---- PASS: TestExecutableBitIsRestored (0.02s)
+--- PASS: TestExecutableBitIsRestored (0.01s)
 === RUN   TestInputChangedDuringRunIsNotStored
 --- PASS: TestInputChangedDuringRunIsNotStored (0.00s)
 === RUN   TestInputPatternMustMatch
@@ -35,9 +67,9 @@ ok  	github.com/softdevstudio/bxm/memo/cmd/bxm-memo	2.407s
 === RUN   TestGlobs
 --- PASS: TestGlobs (0.00s)
 === RUN   TestConcurrentRunsOfTheSameJob
---- PASS: TestConcurrentRunsOfTheSameJob (0.24s)
+--- PASS: TestConcurrentRunsOfTheSameJob (1.93s)
 === RUN   TestGCKeepsNewestWithinSize
---- PASS: TestGCKeepsNewestWithinSize (0.08s)
+--- PASS: TestGCKeepsNewestWithinSize (0.06s)
 === RUN   TestLeftoversFromAKilledStoreAreIgnored
 --- PASS: TestLeftoversFromAKilledStoreAreIgnored (0.01s)
 === RUN   TestOutputsMustStayInsideTheWorkingDirectory
@@ -45,8 +77,8 @@ ok  	github.com/softdevstudio/bxm/memo/cmd/bxm-memo	2.407s
 === RUN   TestInputsBehindDirectorySymlinksAreHashed
 --- PASS: TestInputsBehindDirectorySymlinksAreHashed (0.01s)
 === RUN   TestPlantedEntriesAreRefused
---- PASS: TestPlantedEntriesAreRefused (0.02s)
+--- PASS: TestPlantedEntriesAreRefused (0.03s)
 === RUN   TestEmptyDirectoryOutputIsRestored
---- PASS: TestEmptyDirectoryOutputIsRestored (0.00s)
+--- PASS: TestEmptyDirectoryOutputIsRestored (0.01s)
 PASS
-ok  	github.com/softdevstudio/bxm/memo/internal/memo	1.577s
+ok  	github.com/softdevstudio/bxm/memo/internal/memo	4.086s

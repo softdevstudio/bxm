@@ -29,7 +29,9 @@ import (
 // when the process is killed.
 
 // HeldEnv names the environment variable a run passes to its command with the
-// locks it holds, so a bxm-memo started inside it can't wait for its parent.
+// locks it holds, as key:x (exclusive) or key:s (shared), so a bxm-memo started
+// inside it can't wait for its parent. Two shared locks never conflict, so a
+// nested run writing build/b inside a run writing build/a is fine.
 const HeldEnv = "BXM_MEMO_HELD"
 
 // DefaultLockWait is how long a run waits for another run's outputs.
@@ -115,19 +117,19 @@ type LockOptions struct {
 }
 
 // LockOutputs takes the locks for the outputs and returns a function that
-// releases them, and the keys held (for HeldEnv). It fails at once when an
-// enclosing bxm-memo run already holds one of them, rather than waiting for
-// itself. Any other failure to lock wraps ErrLocksUnavailable.
+// releases them, and the locks held as HeldEnv entries. It fails at once when
+// an enclosing bxm-memo run holds a lock it would conflict with, rather than
+// waiting for itself. Any other failure to lock wraps ErrLocksUnavailable.
 func (c *Cache) LockOutputs(outs []string, opt LockOptions) (func(), []string, error) {
 	list := wants(outs)
-	held := map[string]bool{}
-	for _, k := range strings.Split(os.Getenv(HeldEnv), ",") {
-		if k != "" {
-			held[k] = true
+	held := map[string]bool{} // key -> held exclusively
+	for _, e := range strings.Split(os.Getenv(HeldEnv), ",") {
+		if k, mode, ok := strings.Cut(e, ":"); ok && k != "" {
+			held[k] = held[k] || mode == "x"
 		}
 	}
 	for _, w := range list {
-		if held[w.key] {
+		if excl, ok := held[w.key]; ok && (excl || w.exclusive) {
 			return nil, nil, fmt.Errorf("an enclosing bxm-memo run is writing %s; a command run by bxm-memo can't wrap its own outputs", w.label)
 		}
 	}
@@ -185,7 +187,11 @@ func (c *Cache) LockOutputs(outs []string, opt LockOptions) (func(), []string, e
 			}
 		}
 		files = append(files, f)
-		keys = append(keys, w.key)
+		mode := ":s"
+		if w.exclusive {
+			mode = ":x"
+		}
+		keys = append(keys, w.key+mode)
 	}
 	return release, keys, nil
 }
