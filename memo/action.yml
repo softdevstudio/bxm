@@ -1,0 +1,119 @@
+name: BXM Memo
+description: Install bxm-memo and keep its cache between workflow runs, so wrapped steps whose inputs haven't changed are skipped.
+author: SoftDevStudio.com
+branding:
+  icon: fast-forward
+  color: blue
+
+inputs:
+  key:
+    description: A name for this cache, so separate jobs or workflows keep separate caches. The saved cache is keyed by OS, CPU, this name and the commit; a run restores the newest one with the same OS, CPU and name.
+    required: false
+    default: default
+  cache:
+    description: Restore the cache before the job and save it after. Set to false to only install bxm-memo.
+    required: false
+    default: "true"
+  cache-dir:
+    description: Folder for the cache. Empty means a folder in the runner's temp directory. The action sets BXM_MEMO_CACHE to it for the rest of the job.
+    required: false
+    default: ""
+  version:
+    description: "BXM release to use (v0.4.0 or later), or latest. Empty means the release this action is pinned to (softdevstudio/bxm/memo@v0.4.0 runs bxm-memo 0.4.0), else the latest."
+    required: false
+    default: ""
+  bxm-memo-path:
+    description: Use this bxm-memo binary instead of downloading one (for testing the action itself).
+    required: false
+    default: ""
+
+outputs:
+  version:
+    description: The release the action installed (a vX.Y.Z tag, latest, or local)
+    value: ${{ steps.install.outputs.version }}
+  cache-dir:
+    description: The cache folder, also in BXM_MEMO_CACHE
+    value: ${{ steps.install.outputs.cache-dir }}
+  cache-hit:
+    description: true when a cache saved for this exact commit was restored
+    value: ${{ steps.restore.outputs.cache-hit }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install bxm-memo
+      id: install
+      shell: bash
+      env:
+        MEMO_VERSION: ${{ inputs.version }}
+        MEMO_PATH: ${{ inputs.bxm-memo-path }}
+        MEMO_CACHE_DIR: ${{ inputs.cache-dir }}
+        IN_CACHE: ${{ inputs.cache }}
+        ACTION_REF: ${{ github.action_ref }}
+      run: |
+        set -euo pipefail
+        case "$IN_CACHE" in true|false) ;; *) echo "::error::cache must be true or false, not $IN_CACHE"; exit 1 ;; esac
+        # github.action_ref is empty on some runners; the env variable is the fallback.
+        ACTION_REF="${ACTION_REF:-${GITHUB_ACTION_REF:-}}"
+        if [ -z "$MEMO_VERSION" ]; then
+          if [[ "$ACTION_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then MEMO_VERSION="$ACTION_REF"; else MEMO_VERSION=latest; fi
+        fi
+        dir="$RUNNER_TEMP/bxm-memo-bin"
+        mkdir -p "$dir"
+        if [ -n "$MEMO_PATH" ]; then
+          # Kept as given: on Windows a Git Bash path (/d/a/...) would not work in GITHUB_PATH.
+          bin_dir=$(dirname "$MEMO_PATH")
+          version=local
+        else
+          if [ "$MEMO_VERSION" != latest ] && ! [[ "$MEMO_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version must be latest or a vX.Y.Z tag, not $MEMO_VERSION"; exit 1
+          fi
+          case "$RUNNER_OS" in
+            Linux) os=linux ;; macOS) os=darwin ;; Windows) os=windows ;;
+            *) echo "::error::bxm-memo has no build for $RUNNER_OS"; exit 1 ;;
+          esac
+          case "$RUNNER_ARCH" in
+            X64) arch=amd64 ;; ARM64) arch=arm64 ;;
+            *) echo "::error::bxm-memo has no build for $RUNNER_ARCH"; exit 1 ;;
+          esac
+          if [ "$os" = windows ] && [ "$arch" != amd64 ]; then echo "::error::bxm-memo has no Windows $arch build"; exit 1; fi
+          ext=tar.gz; [ "$os" = windows ] && ext=zip
+          name="bxm-${os}-${arch}.${ext}"
+          if [ "$MEMO_VERSION" = latest ]; then
+            base="https://github.com/softdevstudio/bxm/releases/latest/download"
+          else
+            base="https://github.com/softdevstudio/bxm/releases/download/${MEMO_VERSION}"
+          fi
+          cd "$dir"
+          curl -fsSL --retry 3 -o "$name" "$base/$name" || { echo "::error::could not download $base/$name"; exit 1; }
+          curl -fsSL --retry 3 -o SHA256SUMS "$base/SHA256SUMS" || { echo "::error::could not download SHA256SUMS"; exit 1; }
+          want=$(awk -v n="$name" '$2==n || $2=="*"n {print $1}' SHA256SUMS)
+          if command -v sha256sum >/dev/null; then got=$(sha256sum "$name" | cut -d' ' -f1); else got=$(shasum -a 256 "$name" | cut -d' ' -f1); fi
+          if [ -z "$want" ] || [ "$want" != "$got" ]; then echo "::error::$name does not match SHA256SUMS"; exit 1; fi
+          if [ "$ext" = zip ]; then unzip -oq "$name"; else tar -xzf "$name"; fi
+          bin_dir="$dir/bxm-${os}-${arch}"
+          version="$MEMO_VERSION"
+        fi
+        exe=bxm-memo; [ "$RUNNER_OS" = Windows ] && exe=bxm-memo.exe
+        [ -n "$MEMO_PATH" ] && exe=$(basename "$MEMO_PATH")
+        "$bin_dir/$exe" version
+        echo "$bin_dir" >> "$GITHUB_PATH"
+        cache_dir="${MEMO_CACHE_DIR:-$RUNNER_TEMP/bxm-memo-cache}"
+        mkdir -p "$cache_dir"
+        echo "BXM_MEMO_CACHE=$cache_dir" >> "$GITHUB_ENV"
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        echo "cache-dir=$cache_dir" >> "$GITHUB_OUTPUT"
+
+    # actions/cache restores now and saves in its post step, after the job's
+    # last step. Lock files are left out: they only matter while runs overlap.
+    - name: Restore the bxm-memo cache
+      id: restore
+      if: ${{ inputs.cache == 'true' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ steps.install.outputs.cache-dir }}
+          !${{ steps.install.outputs.cache-dir }}/locks
+        key: bxm-memo-${{ runner.os }}-${{ runner.arch }}-${{ inputs.key }}-${{ github.sha }}
+        restore-keys: |
+          bxm-memo-${{ runner.os }}-${{ runner.arch }}-${{ inputs.key }}-

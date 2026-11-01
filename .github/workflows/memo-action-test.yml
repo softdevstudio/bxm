@@ -1,0 +1,181 @@
+name: Memo action test
+
+# Runs the Memo action (memo/action.yml) with a bxm-memo built from this
+# commit: the first job fills a cache, the second restores it and must get a
+# hit without running the command. The download job runs the action on the
+# published binaries after each release, pinned to the tag and unpinned.
+on:
+  push:
+    branches: [main]
+    paths: [memo/**, .github/workflows/memo-action-test.yml]
+  pull_request:
+    paths: [memo/**, .github/workflows/memo-action-test.yml]
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag the download job pins (vX.Y.Z); empty means the newest release
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  fill:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache-dependency-path: memo/go.mod
+      - name: Build bxm-memo
+        run: |
+          ext=""; [ "$RUNNER_OS" = Windows ] && ext=.exe
+          (cd memo && go build -o "$RUNNER_TEMP/build/bxm-memo$ext" ./cmd/bxm-memo)
+          echo "MEMO_BIN=$RUNNER_TEMP/build/bxm-memo$ext" >> "$GITHUB_ENV"
+      - id: memo
+        uses: ./memo
+        with:
+          key: test-${{ github.run_id }}-${{ github.run_attempt }}
+          bxm-memo-path: ${{ env.MEMO_BIN }}
+      - name: A miss, then a hit in the same job
+        run: |
+          set -eux
+          [ "${{ steps.memo.outputs.version }}" = local ]
+          [ "$BXM_MEMO_CACHE" = "${{ steps.memo.outputs.cache-dir }}" ]
+          mkdir -p w && cd w
+          echo source > in.txt
+          bxm-memo run -i in.txt -o out.txt -- bash -c 'echo ran >> ../runs.log; cp in.txt out.txt' 2>&1 | tee miss.log
+          grep -q miss miss.log
+          rm out.txt
+          bxm-memo run -i in.txt -o out.txt -- bash -c 'echo ran >> ../runs.log; cp in.txt out.txt' 2>&1 | tee hit.log
+          grep -q hit hit.log
+          [ "$(cat out.txt)" = source ]
+          [ "$(wc -l < ../runs.log | tr -d ' ')" = 1 ]
+      - name: Refuses a bad cache input
+        id: bad
+        continue-on-error: true
+        uses: ./memo
+        with:
+          cache: "yes"
+          bxm-memo-path: ${{ env.MEMO_BIN }}
+      - name: Check the refusal
+        run: |
+          [ "${{ steps.bad.outcome }}" = failure ] || { echo "::error::cache: yes was accepted"; exit 1; }
+
+  restore:
+    needs: fill
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache-dependency-path: memo/go.mod
+      - name: Build bxm-memo
+        run: |
+          ext=""; [ "$RUNNER_OS" = Windows ] && ext=.exe
+          (cd memo && go build -o "$RUNNER_TEMP/build/bxm-memo$ext" ./cmd/bxm-memo)
+          echo "MEMO_BIN=$RUNNER_TEMP/build/bxm-memo$ext" >> "$GITHUB_ENV"
+      - id: memo
+        uses: ./memo
+        with:
+          key: test-${{ github.run_id }}-${{ github.run_attempt }}
+          bxm-memo-path: ${{ env.MEMO_BIN }}
+      - name: The cache saved by the first job gives a hit
+        run: |
+          set -eux
+          [ "${{ steps.memo.outputs.cache-hit }}" = true ]
+          mkdir -p w && cd w
+          echo source > in.txt
+          bxm-memo run -i in.txt -o out.txt -- bash -c 'echo ran >> ../runs.log; cp in.txt out.txt' 2>&1 | tee hit.log
+          grep -q hit hit.log
+          [ "$(cat out.txt)" = source ]
+          [ ! -e ../runs.log ]
+
+  # The Release workflow runs after every green CI on main but publishes only
+  # when VERSION is new. Go on only when the newest release was made from the
+  # commit that run was for.
+  fresh:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.f.outputs.go }}
+    steps:
+      - id: f
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = workflow_dispatch ]; then echo "go=yes" >> "$GITHUB_OUTPUT"; exit 0; fi
+          tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/$tag" --jq .sha)
+          if [ "$sha" = "$HEAD_SHA" ]; then echo "go=yes" >> "$GITHUB_OUTPUT"; else echo "go=no" >> "$GITHUB_OUTPUT"; echo "No new release for $HEAD_SHA (newest is $tag)"; fi
+
+  download:
+    needs: fresh
+    if: needs.fresh.outputs.go == 'yes'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        pin: [tag, latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # The action as released, not whatever main holds now.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.event.workflow_run.head_sha || github.sha }}
+      - name: Pick the version
+        id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TAG:-}" ]; then TAG=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName); fi
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::bad tag $TAG"; exit 1; }
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          if [ "${{ matrix.pin }}" = tag ]; then echo "version=$TAG" >> "$GITHUB_OUTPUT"; else echo "version=latest" >> "$GITHUB_OUTPUT"; fi
+      - id: memo
+        uses: ./memo
+        with:
+          cache: "false"
+          version: ${{ steps.pick.outputs.version }}
+      - name: The published bxm-memo works
+        env:
+          TAG: ${{ steps.pick.outputs.tag }}
+        run: |
+          set -eux
+          [ "${{ steps.memo.outputs.version }}" = "${{ steps.pick.outputs.version }}" ]
+          bxm-memo version | grep -F "bxm-memo ${TAG#v}"
+          mkdir -p w && cd w
+          echo source > in.txt
+          bxm-memo run -i in.txt -o out.txt -- bash -c 'cp in.txt out.txt'
+          rm out.txt
+          bxm-memo run -i in.txt -o out.txt -- bash -c 'cp in.txt out.txt' 2>&1 | tee hit.log
+          grep -q hit hit.log
