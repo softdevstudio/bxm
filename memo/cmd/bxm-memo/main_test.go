@@ -187,8 +187,15 @@ func TestGCAndClear(t *testing.T) {
 	if out, _, code := e.run("clear"); code != 0 || !strings.Contains(out, "cleared") {
 		t.Fatalf("clear: %q", out)
 	}
-	if _, err := os.Stat(e.cache); !os.IsNotExist(err) {
-		t.Fatal("cache still there after clear")
+	// clear keeps only locks/, which may be in use by another run.
+	ents, _ := os.ReadDir(e.cache)
+	for _, en := range ents {
+		if en.Name() != "locks" {
+			t.Fatalf("clear left %s", en.Name())
+		}
+	}
+	if _, _, code := e.run("explain", "-i", "a.txt", "-o", "b.txt", "--", "cp", "a.txt", "b.txt"); code != 1 {
+		t.Fatal("a result survived clear")
 	}
 }
 
@@ -282,5 +289,67 @@ func TestKilledLockHolderReleases(t *testing.T) {
 		}
 	case <-time.After(10 * time.Second):
 		t.Fatal("the next run waited on a dead process's lock")
+	}
+}
+
+// A command run by bxm-memo that wraps its own output fails at once.
+func TestNestedRunOnSameOutputFailsFast(t *testing.T) {
+	e := newEnv(t)
+	e.file("in.txt", "x", 0o644)
+	e.file("inner.sh", "#!/bin/sh\nexec \""+bin+"\" run -i in.txt -o n.txt -- cp in.txt n.txt\n", 0o755)
+	done := make(chan string, 1)
+	go func() {
+		_, errOut, _ := e.run("run", "-i", "in.txt", "-o", "n.txt", "--", "./inner.sh")
+		done <- errOut
+	}()
+	select {
+	case errOut := <-done:
+		if !strings.Contains(errOut, "enclosing bxm-memo run") {
+			t.Fatalf("%q", errOut)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("nested run waited for its parent")
+	}
+}
+
+// A cache whose lock folder can't be used still runs, without the guard.
+func TestRunsWithoutLocksWhenTheyCantBeMade(t *testing.T) {
+	e := newEnv(t)
+	e.file("in.txt", "x", 0o644)
+	os.MkdirAll(e.cache, 0o755)
+	os.WriteFile(filepath.Join(e.cache, "locks"), nil, 0o644)
+	_, errOut, code := e.run("run", "-i", "in.txt", "-o", "out.txt", "--", "cp", "in.txt", "out.txt")
+	if code != 0 || !strings.Contains(errOut, "running without output locks") {
+		t.Fatalf("%d %q", code, errOut)
+	}
+	os.Remove(filepath.Join(e.dir, "out.txt"))
+	if _, errOut, _ = e.run("run", "-i", "in.txt", "-o", "out.txt", "--", "cp", "in.txt", "out.txt"); !strings.Contains(errOut, "hit") {
+		t.Fatalf("%q", errOut)
+	}
+}
+
+// A run writing a folder and a run writing a file inside it take turns.
+func TestFolderAndFileInsideItTakeTurns(t *testing.T) {
+	e := newEnv(t)
+	e.file("in.txt", "x", 0o644)
+	e.file("a.sh", "#!/bin/sh\nmkdir -p out\necho 'A full' > out/r.txt\nsleep 2\n", 0o755)
+	e.file("b.sh", "#!/bin/sh\nmkdir -p out\necho B > out/r.txt\n", 0o755)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		e.run("run", "-i", "in.txt", "-o", "out", "--", "./a.sh")
+	}()
+	time.Sleep(500 * time.Millisecond)
+	_, errOut, _ := e.run("run", "-i", "in.txt", "-o", "out/r.txt", "--", "./b.sh")
+	wg.Wait()
+	if !strings.Contains(errOut, "waiting for another run writing out/r.txt") {
+		t.Fatalf("b did not wait: %q", errOut)
+	}
+	os.RemoveAll(filepath.Join(e.dir, "out"))
+	_, errOut, _ = e.run("run", "-i", "in.txt", "-o", "out", "--", "./a.sh")
+	b, _ := os.ReadFile(filepath.Join(e.dir, "out/r.txt"))
+	if !strings.Contains(errOut, "hit") || string(b) != "A full\n" {
+		t.Fatalf("restored %q (%s)", b, errOut)
 	}
 }

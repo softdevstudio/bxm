@@ -27,19 +27,20 @@ const (
 	errorIOPending          = syscall.Errno(997)
 )
 
-// lockFile locks the first byte of f with LockFileEx. Without block it returns
-// false when another process holds the lock.
-func lockFile(f *os.File, block bool) (bool, error) {
-	flags := uintptr(lockfileExclusiveLock)
-	if !block {
-		flags |= lockfileFailImmediately
+// lockFile tries once, without waiting, to lock the first byte of f with
+// LockFileEx, exclusive or shared. It returns false when another process
+// holds a conflicting lock.
+func lockFile(f *os.File, exclusive bool) (bool, error) {
+	flags := uintptr(lockfileFailImmediately)
+	if exclusive {
+		flags |= lockfileExclusiveLock
 	}
 	var ol syscall.Overlapped
 	r, _, err := procLockFileEx.Call(f.Fd(), flags, 0, 1, 0, uintptr(unsafe.Pointer(&ol)))
 	if r != 0 {
 		return true, nil
 	}
-	if !block && (err == errorLockViolation || err == errorIOPending) {
+	if err == errorLockViolation || err == errorIOPending {
 		return false, nil
 	}
 	return false, err

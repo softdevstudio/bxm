@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -57,6 +58,9 @@ type Options struct {
 	Stdout io.Writer
 	Stderr io.Writer
 	Log    io.Writer // where hit/miss lines go
+	// LockWait is how long to wait for another run's outputs; 0 means
+	// DefaultLockWait.
+	LockWait time.Duration
 }
 
 // Result describes what happened.
@@ -115,13 +119,22 @@ func Run(o *Options) (*Result, error) {
 	// Hold the outputs from before the lookup until they are restored or
 	// stored, so a run sharing them can't change them midway. A second
 	// identical run waits here and then finds the first one's result.
-	release, err := o.Cache.LockOutputs(m.Outputs, func(out string) {
-		o.logf("waiting for another run writing %s", out)
+	release, heldKeys, err := o.Cache.LockOutputs(m.Outputs, LockOptions{
+		Wait:    o.LockWait,
+		Waiting: func(out string) { o.logf("waiting for another run writing %s", out) },
+		Still:   func(out string, d time.Duration) { o.logf("still waiting for %s after %s", out, d) },
 	})
-	if err != nil {
-		return nil, fmt.Errorf("locking the outputs: %w", err)
+	switch {
+	case errors.Is(err, ErrLocksUnavailable):
+		// Locking is a guard, not a requirement: a read-only shared cache or
+		// a file system without locks still serves hits and runs, as before
+		// 0.4, only without the guard.
+		o.logf("running without output locks: %v", err)
+	case err != nil:
+		return nil, err
+	default:
+		defer release()
 	}
-	defer release()
 
 	if e, err := o.Cache.Lookup(key); err != nil {
 		o.logf("cache entry damaged, running instead: %v", err)
@@ -161,6 +174,12 @@ func Run(o *Options) (*Result, error) {
 	capt := &capture{}
 	cmd := exec.Command(m.Command[0], m.Command[1:]...)
 	cmd.Stdin = os.Stdin
+	// Tell any bxm-memo the command starts which outputs this run holds, so
+	// it fails at once instead of waiting for its own parent.
+	cmd.Env = os.Environ()
+	if len(heldKeys) > 0 {
+		cmd.Env = append(cmd.Env, HeldEnv+"="+strings.Join(append(strings.Split(os.Getenv(HeldEnv), ","), heldKeys...), ","))
+	}
 	cmd.Stdout = io.MultiWriter(o.Stdout, capWriter{capt, &capt.out})
 	cmd.Stderr = io.MultiWriter(o.Stderr, capWriter{capt, &capt.err})
 	start := time.Now()

@@ -1,8 +1,10 @@
 package memo
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -24,7 +26,7 @@ func chdir(t *testing.T, dir string) {
 func TestOutputLockExcludesAndWaits(t *testing.T) {
 	chdir(t, t.TempDir())
 	c := &Cache{Dir: t.TempDir()}
-	release, err := c.LockOutputs([]string{"out"}, nil)
+	release, _, err := c.LockOutputs([]string{"out"}, LockOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +34,7 @@ func TestOutputLockExcludesAndWaits(t *testing.T) {
 	got := make(chan struct{})
 	go func() {
 		// Another spelling of the same path shares the lock.
-		r2, err := c.LockOutputs([]string{"sub/../out"}, func(string) { waited.Store(true) })
+		r2, _, err := c.LockOutputs([]string{"sub/../out"}, LockOptions{Waiting: func(string) { waited.Store(true) }})
 		if err != nil {
 			t.Error(err)
 			return
@@ -59,14 +61,14 @@ func TestOutputLockExcludesAndWaits(t *testing.T) {
 func TestDifferentOutputsDoNotBlock(t *testing.T) {
 	chdir(t, t.TempDir())
 	c := &Cache{Dir: t.TempDir()}
-	r1, err := c.LockOutputs([]string{"a"}, nil)
+	r1, _, err := c.LockOutputs([]string{"a"}, LockOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer r1()
 	done := make(chan error, 1)
 	go func() {
-		r2, err := c.LockOutputs([]string{"b", "c"}, func(string) { t.Error("waited on an unrelated output") })
+		r2, _, err := c.LockOutputs([]string{"b", "c"}, LockOptions{Waiting: func(string) { t.Error("waited on an unrelated output") }})
 		if err == nil {
 			r2()
 		}
@@ -96,7 +98,7 @@ func TestOutputLocksInAnyOrderDoNotDeadlock(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for j := 0; j < 25; j++ {
-				r, err := c.LockOutputs(outs, nil)
+				r, _, err := c.LockOutputs(outs, LockOptions{})
 				if err != nil {
 					t.Error(err)
 					return
@@ -122,7 +124,7 @@ func TestLocksStayInTheCache(t *testing.T) {
 	proj := t.TempDir()
 	chdir(t, proj)
 	c := &Cache{Dir: t.TempDir()}
-	r, err := c.LockOutputs([]string{"out", "dir/x"}, nil)
+	r, _, err := c.LockOutputs([]string{"out", "dir/x"}, LockOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,8 +133,91 @@ func TestLocksStayInTheCache(t *testing.T) {
 	if len(ents) != 0 {
 		t.Fatalf("wrote into the project: %v", ents)
 	}
+	// out, dir/x, and the shared lock on dir.
 	locks, _ := filepath.Glob(filepath.Join(c.Dir, "locks", "*.lock"))
-	if len(locks) != 2 {
+	if len(locks) != 3 {
 		t.Fatalf("locks: %v", locks)
+	}
+}
+
+func TestOverlappingOutputsExclude(t *testing.T) {
+	chdir(t, t.TempDir())
+	c := &Cache{Dir: t.TempDir()}
+	for _, pair := range [][2]string{{"out", "out/r.txt"}, {"out/r.txt", "out"}, {"a/b/c", "a"}} {
+		r1, _, err := c.LockOutputs([]string{pair[0]}, LockOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _, err = c.LockOutputs([]string{pair[1]}, LockOptions{Wait: 100 * time.Millisecond})
+		if err == nil || !strings.Contains(err.Error(), "gave up") {
+			t.Fatalf("%v: second lock taken or wrong error: %v", pair, err)
+		}
+		r1()
+	}
+	// Siblings under one folder share it and run together.
+	r1, _, err := c.LockOutputs([]string{"out/a"}, LockOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r2, _, err := c.LockOutputs([]string{"out/b"}, LockOptions{Wait: 100 * time.Millisecond})
+	if err != nil {
+		t.Fatal("siblings blocked each other:", err)
+	}
+	r2()
+	r1()
+}
+
+func TestNestedRunFailsInsteadOfWaiting(t *testing.T) {
+	chdir(t, t.TempDir())
+	c := &Cache{Dir: t.TempDir()}
+	r, keys, err := c.LockOutputs([]string{"out"}, LockOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r()
+	t.Setenv(HeldEnv, strings.Join(keys, ","))
+	start := time.Now()
+	for _, o := range []string{"out", "out/x"} {
+		_, _, err = c.LockOutputs([]string{o}, LockOptions{})
+		if err == nil || !strings.Contains(err.Error(), "enclosing bxm-memo run") {
+			t.Fatalf("%s: %v", o, err)
+		}
+	}
+	if time.Since(start) > time.Second {
+		t.Fatal("waited before failing")
+	}
+	// A different output is fine.
+	r2, _, err := c.LockOutputs([]string{"other"}, LockOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r2()
+}
+
+func TestSymlinkSpellingsShareALock(t *testing.T) {
+	proj := t.TempDir()
+	chdir(t, proj)
+	if err := os.Mkdir("real", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("real", "link"); err != nil {
+		t.Skip(err)
+	}
+	// new/ does not exist yet; the existing part of the path is still resolved.
+	if pathKey(resolvePath("link/new/f")) != pathKey(resolvePath("real/new/f")) {
+		t.Fatal("two spellings, two locks")
+	}
+}
+
+func TestUnusableLockFolderIsReported(t *testing.T) {
+	chdir(t, t.TempDir())
+	dir := t.TempDir()
+	// A file where the locks folder should be.
+	if err := os.WriteFile(filepath.Join(dir, "locks"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	c := &Cache{Dir: dir}
+	if _, _, err := c.LockOutputs([]string{"out"}, LockOptions{}); !errors.Is(err, ErrLocksUnavailable) {
+		t.Fatal(err)
 	}
 }

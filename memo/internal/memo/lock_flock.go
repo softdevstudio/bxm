@@ -15,12 +15,12 @@ var caseInsensitiveFS = runtime.GOOS == "darwin"
 
 func foldCase(s string) string { return strings.ToLower(s) }
 
-// lockFile takes an exclusive flock. Without block it returns false when
-// another process holds the lock.
-func lockFile(f *os.File, block bool) (bool, error) {
-	how := syscall.LOCK_EX
-	if !block {
-		how |= syscall.LOCK_NB
+// lockFile tries once, without waiting, to take an exclusive or shared
+// flock. It returns false when another process holds a conflicting lock.
+func lockFile(f *os.File, exclusive bool) (bool, error) {
+	how := syscall.LOCK_SH | syscall.LOCK_NB
+	if exclusive {
+		how = syscall.LOCK_EX | syscall.LOCK_NB
 	}
 	for {
 		err := syscall.Flock(int(f.Fd()), how)
@@ -30,9 +30,7 @@ func lockFile(f *os.File, block bool) (bool, error) {
 		case syscall.EINTR:
 			continue
 		case syscall.EWOULDBLOCK:
-			if !block {
-				return false, nil
-			}
+			return false, nil
 		}
 		return false, err
 	}

@@ -3,11 +3,14 @@
 ## 0.4.0
 
 BXM Memo for CI, and safe shared outputs.
-- Runs that declare the same output take turns. Each holds a lock on its
-  outputs from before its cache lookup until they are restored or stored, so
-  no run stores a file another run is still rewriting. A second run of the
-  same step waits and then gets the first one's result as a hit. Locks live in
-  the cache and are released by the operating system if a run is killed.
+- Runs whose outputs overlap take turns, including a folder and a file inside
+  it. Each holds its outputs from before its cache lookup until they are
+  restored or stored, so no run stores a file another run is still
+  rewriting. A second run of the same step waits and then gets the first
+  one's result as a hit. Locks live in the cache and are released by the
+  operating system if a run is killed. A run waits at most an hour
+  (`--lock-wait`); a nested run on its parent's output fails at once; a cache
+  that can't hold locks runs without them. `clear` keeps `locks/`.
 - A GitHub Action, `softdevstudio/bxm/memo@v0.4.0`: installs `bxm-memo` from
   the release it is pinned to (checked against `SHA256SUMS`), sets
   `BXM_MEMO_CACHE`, and restores and saves the cache between workflow runs.

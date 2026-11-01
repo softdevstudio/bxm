@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -36,6 +37,8 @@ flags for run and explain:
   -n, --name NAME    a name for this job, used when explaining misses
       --salt TEXT    extra text in the key, to invalidate on purpose
       --cache DIR    cache directory (default $BXM_MEMO_CACHE or the user cache dir)
+      --lock-wait D  how long run waits for another run writing the same
+                     outputs, such as 10m or 2h (default 1h)
   -q, --quiet        no hit/miss lines on stderr
 
 On a hit the outputs are restored and the command's original stdout and
@@ -50,6 +53,7 @@ type flags struct {
 	older time.Duration
 	max   int64
 	limit bool // --older-than or --max-size was given
+	wait  time.Duration
 }
 
 func parseSize(s string) (int64, error) {
@@ -123,6 +127,13 @@ func parse(args []string) (*flags, error) {
 			f.spec.Salt, err = val()
 		case "--cache":
 			f.cache, err = val()
+		case "--lock-wait":
+			if v, err = val(); err == nil {
+				f.wait, err = parseAge(v)
+				if err == nil && f.wait <= 0 {
+					err = fmt.Errorf("--lock-wait must be more than 0")
+				}
+			}
 		case "-q", "--quiet":
 			f.quiet = true
 		case "--older-than":
@@ -178,7 +189,7 @@ func run(args []string) int {
 	}
 	c := &memo.Cache{Dir: f.cache}
 	opts := &memo.Options{Spec: f.spec, Name: f.name, Cache: c, Quiet: f.quiet,
-		Stdout: os.Stdout, Stderr: os.Stderr, Log: os.Stderr}
+		Stdout: os.Stdout, Stderr: os.Stderr, Log: os.Stderr, LockWait: f.wait}
 	switch cmd {
 	case "run":
 		r, err := memo.Run(opts)
@@ -232,9 +243,21 @@ func run(args []string) int {
 		fmt.Printf("removed %d result(s), freed %s\n", n, human(freed))
 		return 0
 	case "clear":
-		if err := os.RemoveAll(c.Dir); err != nil {
+		// Everything but locks/: a run holding a lock keeps it on the file it
+		// opened, so deleting lock files would let the next run in beside it.
+		ents, err := os.ReadDir(c.Dir)
+		if err != nil && !os.IsNotExist(err) {
 			fmt.Fprintln(os.Stderr, "bxm-memo:", err)
 			return exitOwnError
+		}
+		for _, e := range ents {
+			if e.Name() == "locks" {
+				continue
+			}
+			if err := os.RemoveAll(filepath.Join(c.Dir, e.Name())); err != nil {
+				fmt.Fprintln(os.Stderr, "bxm-memo:", err)
+				return exitOwnError
+			}
 		}
 		fmt.Printf("cleared %s\n", c.Dir)
 		return 0

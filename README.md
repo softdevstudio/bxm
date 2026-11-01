@@ -226,16 +226,23 @@ bxm-memo clear                                  # delete the whole cache
   half-restored outputs.
 - If an input changes while the command runs, the result is not stored.
 - Results are keyed per OS and CPU type.
-- Many processes can share one cache at the same time. Runs that declare the
-  same output take turns: each holds a lock on its outputs from before its
-  cache lookup until they are restored or stored, so no run stores a file
-  another one is still rewriting. A second run of the same step waits for the
-  first and then gets its result as a hit, without running the command again.
-  While it waits it prints `waiting for another run writing <output>`.
+- Many processes can share one cache at the same time. Runs whose outputs
+  overlap take turns: the same file, or a folder and a file inside it. Each
+  run holds its outputs from before its cache lookup until they are restored
+  or stored, so no run stores a file another one is still rewriting. Runs
+  writing different files in one folder still run side by side. A second run
+  of the same step waits for the first and then gets its result as a hit,
+  without running the command again. While it waits it prints
+  `waiting for another run writing <output>`, and a reminder every minute.
+- A run waits at most an hour (`--lock-wait` changes that) and then fails.
+  A command run by `bxm-memo` that calls `bxm-memo` on one of the same outputs
+  fails at once instead of waiting for its own parent.
 - The locks live in the cache (`locks/`), so runs sharing outputs only take
   turns when they share a cache too. The operating system drops a lock when
   its process ends, even after a kill. Locking works on Linux, macOS, the BSDs
-  and Windows. `explain` takes no locks.
+  and Windows. If the cache can't hold locks (it is read-only, or on a network
+  file system without them), runs go ahead without them and say so. `explain`
+  takes no locks, and `clear` leaves `locks/` in place.
 - Outputs must be paths inside the working directory: not `.`, not `..` and
   not absolute, since a hit replaces them.
 - Symlinks inside input directories are followed. A broken link is an error,
@@ -269,8 +276,8 @@ It runs on Linux, macOS and Windows runners.
 |---|---|---|
 | `key` | `default` | A name for the cache, so separate jobs keep separate caches. |
 | `cache` | `true` | `false` only installs `bxm-memo`. |
-| `cache-dir` | a folder in the runner's temp directory | Where the cache lives. |
-| `version` | | `latest` or a tag such as `v0.4.0`. Empty runs the release the action is pinned to. |
+| `cache-dir` | a folder in the runner's temp directory | Where the cache lives. A relative folder is taken from the workspace. |
+| `version` | | `latest` or a tag such as `v0.4.0`. Empty runs the release the action comes from, whether you pin it by tag or by commit. |
 
 Outputs: `version`, `cache-dir`, and `cache-hit` (true when a cache saved for
 this exact commit was restored). A cache only grows; add
@@ -295,7 +302,9 @@ files.
   damaged cache objects; inputs edited mid-run; 16 processes in 16 checkouts sharing a cache;
   a run killed with SIGKILL; garbage collection. Output locks: two different
   runs sharing an output store only finished files, four identical runs run
-  the command once, a killed lock holder doesn't block the next run, and
+  the command once, a folder and a file inside it take turns, a killed lock
+  holder doesn't block the next run, a nested run on its parent's output
+  fails at once, an unusable lock folder means running without locks, and
   runs locking several outputs in opposite orders don't deadlock.
 - The Memo action: a cache filled by one job gives the next job a hit,
   on Linux, macOS and Windows runners.

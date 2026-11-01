@@ -10,5 +10,5 @@ var caseInsensitiveFS = false
 
 func foldCase(s string) string { return s }
 
-func lockFile(f *os.File, block bool) (bool, error) { return true, nil }
-func unlockFile(f *os.File) error                   { return nil }
+func lockFile(f *os.File, exclusive bool) (bool, error) { return true, nil }
+func unlockFile(f *os.File) error                       { return nil }

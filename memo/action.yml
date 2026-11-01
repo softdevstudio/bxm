@@ -19,7 +19,7 @@ inputs:
     required: false
     default: ""
   version:
-    description: "BXM release to use (v0.4.0 or later), or latest. Empty means the release this action is pinned to (softdevstudio/bxm/memo@v0.4.0 runs bxm-memo 0.4.0), else the latest."
+    description: "BXM release to use (v0.4.0 or later), or latest. Empty means the release whose action you are using: softdevstudio/bxm/memo@v0.4.0, or a commit SHA from that release, runs bxm-memo 0.4.0."
     required: false
     default: ""
   bxm-memo-path:
@@ -49,14 +49,21 @@ runs:
         MEMO_PATH: ${{ inputs.bxm-memo-path }}
         MEMO_CACHE_DIR: ${{ inputs.cache-dir }}
         IN_CACHE: ${{ inputs.cache }}
-        ACTION_REF: ${{ github.action_ref }}
+        ACTION_PATH: ${{ github.action_path }}
       run: |
         set -euo pipefail
         case "$IN_CACHE" in true|false) ;; *) echo "::error::cache must be true or false, not $IN_CACHE"; exit 1 ;; esac
-        # github.action_ref is empty on some runners; the env variable is the fallback.
-        ACTION_REF="${ACTION_REF:-${GITHUB_ACTION_REF:-}}"
+        # The action ships inside the release it belongs to, so its own VERSION
+        # file says which bxm-memo to use, whether it was pinned by tag or by
+        # commit (github.action_ref is unreliable inside composite actions).
         if [ -z "$MEMO_VERSION" ]; then
-          if [[ "$ACTION_REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then MEMO_VERSION="$ACTION_REF"; else MEMO_VERSION=latest; fi
+          v=$(tr -d '[:space:]' < "$ACTION_PATH/../VERSION" 2>/dev/null || true)
+          if [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            MEMO_VERSION="v$v"
+          else
+            echo "::warning::could not read the action's VERSION file; using the latest release"
+            MEMO_VERSION=latest
+          fi
         fi
         dir="$RUNNER_TEMP/bxm-memo-bin"
         mkdir -p "$dir"
@@ -80,10 +87,15 @@ runs:
           ext=tar.gz; [ "$os" = windows ] && ext=zip
           name="bxm-${os}-${arch}.${ext}"
           if [ "$MEMO_VERSION" = latest ]; then
-            base="https://github.com/softdevstudio/bxm/releases/latest/download"
+            # Resolve latest to one tag first, so the archive and SHA256SUMS
+            # can't come from two releases if one lands in between.
+            url=$(curl -fsSLI --retry 3 -o /dev/null -w '%{url_effective}' https://github.com/softdevstudio/bxm/releases/latest) || { echo "::error::could not find the latest release"; exit 1; }
+            tag="${url##*/}"
+            [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::the latest release has an unexpected tag: $tag"; exit 1; }
           else
-            base="https://github.com/softdevstudio/bxm/releases/download/${MEMO_VERSION}"
+            tag="$MEMO_VERSION"
           fi
+          base="https://github.com/softdevstudio/bxm/releases/download/${tag}"
           cd "$dir"
           curl -fsSL --retry 3 -o "$name" "$base/$name" || { echo "::error::could not download $base/$name"; exit 1; }
           curl -fsSL --retry 3 -o SHA256SUMS "$base/SHA256SUMS" || { echo "::error::could not download SHA256SUMS"; exit 1; }
@@ -99,6 +111,12 @@ runs:
         "$bin_dir/$exe" version
         echo "$bin_dir" >> "$GITHUB_PATH"
         cache_dir="${MEMO_CACHE_DIR:-$RUNNER_TEMP/bxm-memo-cache}"
+        # A relative folder is taken from the workspace, so later steps with
+        # their own working-directory use the same cache actions/cache saves.
+        case "$cache_dir" in
+          /*|[A-Za-z]:[\\/]*) ;;
+          *) cache_dir="$GITHUB_WORKSPACE/$cache_dir" ;;
+        esac
         mkdir -p "$cache_dir"
         echo "BXM_MEMO_CACHE=$cache_dir" >> "$GITHUB_ENV"
         echo "version=$version" >> "$GITHUB_OUTPUT"

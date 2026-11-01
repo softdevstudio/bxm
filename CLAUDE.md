@@ -49,6 +49,12 @@ Steps:
 
 CI note (2026-11-01): ubuntu-latest became Ubuntu 26.04, which has no Python 3.9, so the python (ubuntu, 3.9) job couldn't start. That row now runs on ubuntu-24.04; the wheels still promise 3.9. When 24.04 runners go away, raising the floor to 3.10 is YK's call.
 
+Review round 1 (2026-11-01, independent agent), all fixed with tests:
+- Blocker: overlapping outputs (`out` and `out/r.txt`) took different locks, so a hit could restore another run's file. Now each output locks itself exclusively and every folder above it (inside the working directory) shared; siblings still run together.
+- Blocker: a command wrapping its own output with bxm-memo waited forever. Now the held lock keys go to the child in BXM_MEMO_HELD and a nested run on them fails at once; every wait is capped (`--lock-wait`, default 1h, a reminder each minute). Locks are now polled with non-blocking attempts.
+- Should-fix: any lock setup error failed the run; now it runs without locks and says so. `clear` deleted locks in use; now it keeps locks/. The Action's pin came from github.action_ref (unreliable in composite actions, wrong for SHA pins); now it reads its own ../VERSION. A relative cache-dir differed between steps; now it is made absolute from the workspace.
+- Nits fixed: symlinks resolved in the longest existing part of an output path; `latest` resolved to one tag before downloading. Left: a background child keeping the command's pipes open extends the run (pre-0.4); lock files are never pruned (tiny, one per output path); macOS lowercases paths for lock keys (over-locks on case-sensitive volumes, harmless).
+
 Local note: this cloud session has Go 1.24 only, so local Memo tests run with a scratch go.mod; CI on stable Go is the real check.
 
 ## State
