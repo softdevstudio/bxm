@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.0
+
+BXM Memo for CI, and safe shared outputs.
+- Runs that declare the same output take turns. Each holds a lock on its
+  outputs from before its cache lookup until they are restored or stored, so
+  no run stores a file another run is still rewriting. A second run of the
+  same step waits and then gets the first one's result as a hit. Locks live in
+  the cache and are released by the operating system if a run is killed.
+- A GitHub Action, `softdevstudio/bxm/memo@v0.4.0`: installs `bxm-memo` from
+  the release it is pinned to (checked against `SHA256SUMS`), sets
+  `BXM_MEMO_CACHE`, and restores and saves the cache between workflow runs.
+  Tested on Linux, macOS and Windows runners.
+- Memo now needs Go 1.26 or later to build from source. CI runs Memo's
+  library tests on Windows.
+
 ## 0.3.0
 
 BXM Canon for Python.

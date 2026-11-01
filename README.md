@@ -30,7 +30,7 @@ licenses.
 | Windows x86-64 | [bxm-windows-amd64.zip](https://github.com/softdevstudio/bxm/releases/latest/download/bxm-windows-amd64.zip)     |
 
 `SHA256SUMS` sits next to them. To build from source you need Rust (stable)
-and Go 1.22 or later:
+and Go 1.26 or later:
 
 ```sh
 cd canon && cargo build --release      # target/release/bxm-canon
@@ -226,10 +226,16 @@ bxm-memo clear                                  # delete the whole cache
   half-restored outputs.
 - If an input changes while the command runs, the result is not stored.
 - Results are keyed per OS and CPU type.
-- Many processes can share one cache at the same time. Give each one its own
-  working directory. If two runs write the same output files in one directory
-  at the same time, Memo can store a file the other run is still rewriting,
-  and later hits restore that copy.
+- Many processes can share one cache at the same time. Runs that declare the
+  same output take turns: each holds a lock on its outputs from before its
+  cache lookup until they are restored or stored, so no run stores a file
+  another one is still rewriting. A second run of the same step waits for the
+  first and then gets its result as a hit, without running the command again.
+  While it waits it prints `waiting for another run writing <output>`.
+- The locks live in the cache (`locks/`), so runs sharing outputs only take
+  turns when they share a cache too. The operating system drops a lock when
+  its process ends, even after a kill. Locking works on Linux, macOS, the BSDs
+  and Windows. `explain` takes no locks.
 - Outputs must be paths inside the working directory: not `.`, not `..` and
   not absolute, since a hit replaces them.
 - Symlinks inside input directories are followed. A broken link is an error,
@@ -243,8 +249,35 @@ bxm-memo clear                                  # delete the whole cache
 
 ### In CI
 
-Point `BXM_MEMO_CACHE` at a directory your CI keeps between runs (for example
-with `actions/cache`) and wrap the slow steps.
+On GitHub Actions, the Memo action installs `bxm-memo` and keeps its cache
+between workflow runs:
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+  - uses: softdevstudio/bxm/memo@v0.4.0
+  - run: bxm-memo run -n site -i 'content/**' -i hugo.toml -o public -- hugo --minify
+```
+
+It downloads the release it is pinned to, checks it against `SHA256SUMS`,
+puts `bxm-memo` on the path and sets `BXM_MEMO_CACHE`. The cache is restored
+before your steps and saved after the job, keyed by OS, CPU, the `key` input
+and the commit, so a new commit starts from the newest cache of earlier ones.
+It runs on Linux, macOS and Windows runners.
+
+| Input | Default | What it does |
+|---|---|---|
+| `key` | `default` | A name for the cache, so separate jobs keep separate caches. |
+| `cache` | `true` | `false` only installs `bxm-memo`. |
+| `cache-dir` | a folder in the runner's temp directory | Where the cache lives. |
+| `version` | | `latest` or a tag such as `v0.4.0`. Empty runs the release the action is pinned to. |
+
+Outputs: `version`, `cache-dir`, and `cache-hit` (true when a cache saved for
+this exact commit was restored). A cache only grows; add
+`bxm-memo gc --max-size 1G` as a last step to keep it small.
+
+On other CI systems, point `BXM_MEMO_CACHE` at a directory the CI keeps
+between runs and wrap the slow steps.
 
 ---
 
@@ -260,9 +293,15 @@ files.
   linked against the library.
 - Memo: hits, misses and their reasons; failing commands; missing outputs;
   damaged cache objects; inputs edited mid-run; 16 processes in 16 checkouts sharing a cache;
-  a run killed with SIGKILL; garbage collection.
+  a run killed with SIGKILL; garbage collection. Output locks: two different
+  runs sharing an output store only finished files, four identical runs run
+  the command once, a killed lock holder doesn't block the next run, and
+  runs locking several outputs in opposite orders don't deadlock.
+- The Memo action: a cache filled by one job gives the next job a hit,
+  on Linux, macOS and Windows runners.
 
-CI runs both on Linux and macOS on every push.
+CI runs Canon and Memo on Linux and macOS on every push, Memo's library tests
+and the Python package on Windows too.
 
 ## License
 

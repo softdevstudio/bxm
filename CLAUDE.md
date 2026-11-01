@@ -42,7 +42,7 @@ Design decisions:
 Steps:
 1. [x] Output locks (memo/internal/memo/lock*.go), with tests: lock_test.go (exclusion and wait callback, two spellings share a lock, unrelated outputs don't block, 8 goroutines locking in opposite orders don't deadlock, nothing written into the project) and three end-to-end tests (two different runs sharing an output store only finished files, four identical runs run the command once, a SIGKILLed holder doesn't block the next run). With locking switched off those tests fail. memo/go.mod raised to 1.26 here. CI gains a memo-windows job for LockFileEx.
 2. [x] Memo Action (memo/action.yml) and .github/workflows/memo-action-test.yml: fill job (miss then hit in one job, bad `cache` input refused) and restore job (cache saved by the fill job's post step gives a hit, command not run) on 3 OS; download job after each release, gated on the newest release being for that commit, pinned and latest. Install step simulated locally against the real v0.3.0 release (download, SHA256SUMS, unpack).
-3. [ ] Upkeep, README, CHANGELOG.
+3. [x] Upkeep, README, CHANGELOG. GitHub serves no "latest" page of release files for pip (expanded_assets/latest is 404), so the pip line keeps naming a version and check-version.sh now fails when it doesn't name VERSION. README: locks under Rules worth knowing, the Action under In CI, Go 1.26, CI line names the Windows jobs.
 4. [ ] Independent review, fixes, re-record test/results.
 5. [ ] Version 0.4.0 in the four places, release, verify downloads and the Action on published binaries.
 6. [ ] bxm.net post, softdevstudio.com note, softdev-plan.md status.

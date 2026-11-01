@@ -16,6 +16,9 @@ fail=0
 [ "$wasm_v" = "$v" ] || { echo "js/wasm/Cargo.toml has $wasm_v, VERSION has $v"; fail=1; }
 [ "$cargo_v" = "$v" ] || { echo "canon/Cargo.toml has $cargo_v, VERSION has $v"; fail=1; }
 [ "$go_v" = "$v" ] || { echo "memo main.go has $go_v, VERSION has $v"; fail=1; }
+# GitHub has no "latest" page of release files, so the pip line names the
+# version and must move with it.
+grep -q "releases/expanded_assets/v$v\b" README.md || { echo "README.md's pip line does not name v$v"; fail=1; }
 grep -q "^## $v" CHANGELOG.md || { echo "CHANGELOG.md has no section for $v"; fail=1; }
 [ $fail = 0 ] && echo "version $v everywhere"
 exit $fail
