@@ -112,6 +112,17 @@ func Run(o *Options) (*Result, error) {
 	name := label(o.Name, m)
 	r := &Result{Key: key}
 
+	// Hold the outputs from before the lookup until they are restored or
+	// stored, so a run sharing them can't change them midway. A second
+	// identical run waits here and then finds the first one's result.
+	release, err := o.Cache.LockOutputs(m.Outputs, func(out string) {
+		o.logf("waiting for another run writing %s", out)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("locking the outputs: %w", err)
+	}
+	defer release()
+
 	if e, err := o.Cache.Lookup(key); err != nil {
 		o.logf("cache entry damaged, running instead: %v", err)
 		o.Cache.Drop(key)

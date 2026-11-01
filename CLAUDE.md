@@ -40,7 +40,7 @@ Design decisions:
 - Upkeep: memo/go.mod to 1.26; README Python link to latest; README CI line names the Windows Python job.
 
 Steps:
-1. [ ] Output locks, with tests (two processes on one output: no torn store, second gets a hit; killed holder releases; different outputs don't block; sorted order).
+1. [x] Output locks (memo/internal/memo/lock*.go), with tests: lock_test.go (exclusion and wait callback, two spellings share a lock, unrelated outputs don't block, 8 goroutines locking in opposite orders don't deadlock, nothing written into the project) and three end-to-end tests (two different runs sharing an output store only finished files, four identical runs run the command once, a SIGKILLed holder doesn't block the next run). With locking switched off those tests fail. memo/go.mod raised to 1.26 here. CI gains a memo-windows job for LockFileEx.
 2. [ ] Memo Action and its test workflow.
 3. [ ] Upkeep, README, CHANGELOG.
 4. [ ] Independent review, fixes, re-record test/results.

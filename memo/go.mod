@@ -1,3 +1,3 @@
 module github.com/softdevstudio/bxm/memo
 
-go 1.22
+go 1.26

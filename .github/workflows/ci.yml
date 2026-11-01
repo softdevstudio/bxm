@@ -56,6 +56,29 @@ jobs:
       - run: go vet ./...
       - run: go test -count=1 -race ./...
 
+  # Output locks use LockFileEx on Windows, so the library tests run there too
+  # (the end-to-end tests need a POSIX shell and skip themselves).
+  memo-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: memo
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache-dependency-path: memo/go.mod
+      - run: go vet ./...
+      - name: Tests
+        run: |
+          set -o pipefail
+          go test -count=1 -v ./... 2>&1 | tee test.log || {
+            echo "::error::$(grep -E -- "--- FAIL|panic:|_test.go:[0-9]+:" test.log | head -60 | awk '{gsub(/%/,"%25"); printf "%s%%0A", $0}')"
+            exit 1
+          }
+
   js:
     strategy:
       fail-fast: false
