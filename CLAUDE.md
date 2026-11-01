@@ -30,6 +30,25 @@ and config values only; never touch the theme).
   (`gh api repos/softdevstudio/bxm/check-runs/<job id>/annotations`). Scripts
   print `::error::` lines for that reason.
 
+## In progress: BXM 0.4 Phase A (softdev-plan item 36, approved by YK 2026-11-01)
+
+What and why: Memo's main use is CI, but the README only says "point it at a cache"; and two runs writing the same outputs at once can store a half-rewritten file (README states it). npm/PyPI publishing is not in this phase: it needs YK's registry accounts and he hasn't decided.
+
+Design decisions:
+- Output locks: before the cache lookup, `bxm-memo run` takes an exclusive OS lock for each declared output, in sorted order (no deadlock between runs), and holds them through restore or run-and-store. Lock files live in the cache under `locks/`, one per output path (SHA-256 of the absolute path, with the parent's symlinks resolved), so nothing is written into the project. flock on Linux, macOS and the BSDs, LockFileEx on Windows, stdlib only (syscall, kernel32 via NewLazyDLL); the OS drops a lock when its process dies, SIGKILL included. A second identical run waits, then gets a hit instead of running twice. While waiting it prints one "waiting for another run writing X" line. Runs sharing outputs but using different caches are not serialised; the README says so. `explain` takes no locks.
+- Memo GitHub Action at `memo/action.yml` (`uses: softdevstudio/bxm/memo@v0.4.0`): composite, downloads the BXM release for the runner (pinned to the action's tag, else latest), checks SHA256SUMS, puts bxm-memo on PATH, sets BXM_MEMO_CACHE, and restores and saves that folder with actions/cache (key per OS, arch, a user key and the commit, restore-keys on the prefix). Later steps call bxm-memo themselves. Tested by `.github/workflows/memo-action-test.yml` on Linux, macOS and Windows (second run in the job gets a hit), and on the published binaries after each release.
+- Upkeep: memo/go.mod to 1.26; README Python link to latest; README CI line names the Windows Python job.
+
+Steps:
+1. [ ] Output locks, with tests (two processes on one output: no torn store, second gets a hit; killed holder releases; different outputs don't block; sorted order).
+2. [ ] Memo Action and its test workflow.
+3. [ ] Upkeep, README, CHANGELOG.
+4. [ ] Independent review, fixes, re-record test/results.
+5. [ ] Version 0.4.0 in the four places, release, verify downloads and the Action on published binaries.
+6. [ ] bxm.net post, softdevstudio.com note, softdev-plan.md status.
+
+Local note: this cloud session has Go 1.24 only, so local Memo tests run with a scratch go.mod; CI on stable Go is the real check.
+
 ## State
 
 0.3.0: Canon adds the Python package (python/), PyO3 bindings to the core.
