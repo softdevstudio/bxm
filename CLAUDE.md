@@ -47,6 +47,8 @@ Steps:
 5. [ ] Version 0.4.0 in the four places, release, verify downloads and the Action on published binaries.
 6. [ ] bxm.net post, softdevstudio.com note, softdev-plan.md status.
 
+CI note (2026-11-01): ubuntu-latest became Ubuntu 26.04, which has no Python 3.9, so the python (ubuntu, 3.9) job couldn't start. That row now runs on ubuntu-24.04; the wheels still promise 3.9. When 24.04 runners go away, raising the floor to 3.10 is YK's call.
+
 Local note: this cloud session has Go 1.24 only, so local Memo tests run with a scratch go.mod; CI on stable Go is the real check.
 
 ## State
